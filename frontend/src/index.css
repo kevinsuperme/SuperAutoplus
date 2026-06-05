@@ -1,0 +1,461 @@
+@import url("https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Fraunces:wght@500;600;700&display=swap");
+@import "tailwindcss";
+
+/* ================================================================
+   SuperAutoplus eco platform design system
+   Inspired by the Sustainability Platform demo.
+   ================================================================ */
+
+:root {
+  --font-body: "DM Sans", "PingFang SC", "Microsoft YaHei", Arial, sans-serif;
+  --font-heading: "Fraunces", "DM Sans", "PingFang SC", "Microsoft YaHei", serif;
+
+  --bg-base: #10291f;
+  --bg-surface: #143426;
+  --bg-pane: #183c2c;
+  --bg-card: #163528;
+  --bg-input: #10291f;
+  --bg-hover: rgba(76, 175, 80, 0.14);
+  --chip-bg: rgba(250, 250, 245, 0.08);
+
+  --border: rgba(216, 226, 220, 0.18);
+  --border-soft: rgba(216, 226, 220, 0.12);
+
+  --text-primary: #f7fff7;
+  --text-secondary: #c5d9ce;
+  --text-muted: #91aa9a;
+  --text-accent: #9be57b;
+
+  --accent: #4caf50;
+  --accent-strong: #9be57b;
+  --accent-hover: #6cc96f;
+  --accent-rgb: 76, 175, 80;
+  --accent-strong-rgb: 155, 229, 123;
+  --accent-soft: rgba(var(--accent-rgb), 0.16);
+  --accent-edge: rgba(var(--accent-rgb), 0.34);
+
+  --color-earth: #c28a4a;
+  --color-sky: #87ceeb;
+  --color-sun: #ffb300;
+  --color-leaf: #4caf50;
+  --color-bg-alt: #173d2d;
+  --color-bg-dark: #0f261d;
+
+  --bg-active: rgba(var(--accent-rgb), 0.18);
+  --hero-bg: rgba(var(--accent-rgb), 0.12);
+  --gradient-nature: linear-gradient(135deg, #228b22 0%, #4caf50 100%);
+  --gradient-earth: linear-gradient(135deg, #a0522d 0%, #d3995f 100%);
+  --gradient-sky: linear-gradient(135deg, #0891b2 0%, #87ceeb 100%);
+
+  --shadow-soft: 0 14px 34px rgba(0, 0, 0, 0.16);
+  --shadow-hard: 0 24px 60px rgba(0, 0, 0, 0.24);
+  --surface-glow: 0 18px 50px rgba(var(--accent-rgb), 0.18);
+}
+
+.light {
+  --bg-base: #fafaf5;
+  --bg-surface: rgba(250, 250, 245, 0.92);
+  --bg-pane: #f5f5e8;
+  --bg-card: #ffffff;
+  --bg-input: #ffffff;
+  --bg-hover: rgba(34, 139, 34, 0.08);
+  --chip-bg: rgba(34, 139, 34, 0.08);
+
+  --border: #d8e2dc;
+  --border-soft: rgba(82, 121, 111, 0.18);
+
+  --text-primary: #1b4332;
+  --text-secondary: #52796f;
+  --text-muted: #84a98c;
+  --text-accent: #228b22;
+
+  --accent: #228b22;
+  --accent-strong: #4caf50;
+  --accent-hover: #1d741d;
+  --accent-rgb: 34, 139, 34;
+  --accent-strong-rgb: 76, 175, 80;
+  --accent-soft: rgba(var(--accent-rgb), 0.10);
+  --accent-edge: rgba(var(--accent-rgb), 0.24);
+
+  --color-earth: #a0522d;
+  --color-sky: #0891b2;
+  --color-sun: #ffb300;
+  --color-leaf: #4caf50;
+  --color-bg-alt: #f5f5e8;
+  --color-bg-dark: #1b4332;
+
+  --bg-active: rgba(var(--accent-rgb), 0.12);
+  --hero-bg: rgba(var(--accent-rgb), 0.08);
+
+  --shadow-soft: 0 12px 28px rgba(27, 67, 50, 0.08);
+  --shadow-hard: 0 22px 54px rgba(27, 67, 50, 0.12);
+  --surface-glow: 0 18px 50px rgba(var(--accent-rgb), 0.16);
+}
+
+/* ================================================================
+   Base reset
+   ================================================================ */
+
+* {
+  box-sizing: border-box;
+  letter-spacing: 0 !important;
+}
+
+html,
+body {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  background:
+    linear-gradient(180deg, rgba(var(--accent-rgb), 0.06), transparent 320px),
+    var(--bg-base);
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  transition: background 0.18s, color 0.18s;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  font-family: var(--font-heading);
+}
+
+#root {
+  min-height: 100vh;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+button,
+[role="button"],
+a,
+summary,
+select,
+input[type="checkbox"],
+input[type="radio"] {
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
+}
+
+a {
+  color: inherit;
+}
+
+::selection {
+  background: rgba(var(--accent-rgb), 0.24);
+}
+
+::placeholder {
+  color: var(--text-muted);
+}
+
+/* ================================================================
+   Shell and organic surfaces
+   ================================================================ */
+
+.app-shell {
+  position: relative;
+  min-height: 100vh;
+  background:
+    linear-gradient(120deg, rgba(var(--accent-rgb), 0.08), transparent 42%),
+    linear-gradient(180deg, var(--bg-base), var(--bg-base));
+}
+
+.app-sidebar-shell {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-soft);
+  backdrop-filter: blur(18px);
+}
+
+.app-content-panel {
+  min-height: calc(100vh - 24px);
+}
+
+.organic-card {
+  border: 1px solid var(--border);
+  border-radius: 24px;
+  background: var(--bg-card);
+  box-shadow: var(--shadow-soft);
+  transition: border-color 0.2s, box-shadow 0.2s, transform 0.2s;
+}
+
+.organic-card:hover {
+  border-color: var(--accent-edge);
+  box-shadow: var(--surface-glow);
+}
+
+.leaf-card {
+  border: 1px solid var(--border);
+  border-radius: 36px 16px;
+  background: var(--bg-card);
+  box-shadow: var(--shadow-soft);
+}
+
+.eco-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  width: fit-content;
+  border: 1px solid var(--accent-edge);
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  padding: 0.45rem 0.85rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+.eco-gradient-text {
+  background: var(--gradient-nature);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.eco-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: var(--gradient-nature);
+  color: #ffffff;
+  box-shadow: 0 12px 30px rgba(var(--accent-rgb), 0.24);
+}
+
+/* ================================================================
+   Dialogs
+   ================================================================ */
+
+.dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  overflow: auto;
+  background: rgba(15, 38, 29, 0.58);
+  backdrop-filter: blur(8px);
+}
+
+.dialog-panel {
+  position: relative;
+  width: 100%;
+  max-height: calc(100dvh - 32px);
+  border: 1px solid var(--border);
+  border-radius: 24px;
+  background: var(--bg-card);
+  box-shadow: var(--shadow-hard);
+  overflow: hidden;
+}
+
+.dialog-panel-sm { max-width: 520px; }
+.dialog-panel-md { max-width: 720px; }
+.dialog-panel-lg { max-width: 1024px; }
+
+/* ================================================================
+   Form controls
+   ================================================================ */
+
+.control-surface {
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--bg-input);
+  color: var(--text-primary);
+  padding: 0.65rem 0.85rem;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
+}
+
+.control-surface::placeholder {
+  color: var(--text-muted);
+}
+
+.control-surface-compact {
+  padding: 0.48rem 0.7rem;
+  border-radius: 12px;
+}
+
+.control-surface-mono {
+  font-family: "SFMono-Regular", "SF Mono", "JetBrains Mono", "Menlo", monospace;
+  font-size: 0.75rem;
+}
+
+.checkbox-accent {
+  accent-color: var(--accent);
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  border-color: var(--accent) !important;
+  box-shadow: 0 0 0 4px rgba(var(--accent-rgb), 0.14);
+  outline: none;
+}
+
+/* ================================================================
+   Tables and repeated rows
+   ================================================================ */
+
+.glass-table-wrap {
+  overflow-x: auto;
+}
+
+table {
+  border-collapse: collapse;
+}
+
+thead th {
+  font-size: 11px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+tbody tr {
+  transition: background-color 0.12s;
+}
+
+.table-action-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text-secondary);
+  padding: 0.38rem 0.72rem;
+  font-size: 0.75rem;
+  line-height: 1;
+  white-space: nowrap;
+  transition: color 0.12s, border-color 0.12s, background 0.12s, transform 0.12s;
+}
+
+.table-action-btn:hover {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent);
+  transform: translateY(-1px);
+}
+
+.table-action-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.table-action-btn-danger {
+  border-color: rgba(239, 68, 68, 0.24);
+  color: #ef4444;
+}
+
+.table-action-btn-danger:hover {
+  border-color: rgba(239, 68, 68, 0.4);
+  background: rgba(239, 68, 68, 0.08);
+  color: #dc2626;
+}
+
+.empty-state-panel {
+  border: 1px dashed var(--border);
+  border-radius: 18px;
+  background: var(--bg-hover);
+  padding: 2rem;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 0.875rem;
+}
+
+.toolbar-strip {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.progress-track {
+  height: 8px;
+  border-radius: 999px;
+  background: var(--chip-bg);
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  border-radius: inherit;
+  background: var(--gradient-nature);
+}
+
+/* ================================================================
+   Scrollbar and motion
+   ================================================================ */
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background: rgba(var(--accent-rgb), 0.24);
+  background-clip: padding-box;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(var(--accent-rgb), 0.38);
+  background-clip: padding-box;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+@media (max-width: 860px) {
+  .app-shell {
+    padding: 0;
+  }
+
+  .app-sidebar-shell {
+    border-radius: 0;
+    border-left: 0;
+    border-top: 0;
+    border-bottom: 0;
+  }
+
+  .app-content-panel {
+    min-height: 100vh;
+  }
+
+  .dialog-panel {
+    max-height: calc(100dvh - 16px);
+    border-radius: 18px;
+  }
+}
