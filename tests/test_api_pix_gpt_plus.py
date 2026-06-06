@@ -265,6 +265,21 @@ def test_client_open_rejects_missing_token(monkeypatch):
     }
 
 
+def test_client_open_rejects_invalid_session_json(monkeypatch):
+    _without_stored_pix_client_codes(monkeypatch)
+    monkeypatch.setenv("PIX_CLIENT_CKD_CODES", "CKD-OK")
+
+    result = PixGptPlusService().generate_for_client_token(
+        {"ckd": "CKD-OK", "credential": '{"session":'}
+    )
+
+    assert result == {
+        "ok": False,
+        "status": "invalid_credential",
+        "message": "Session JSON 格式无效",
+    }
+
+
 def test_client_open_wraps_remote_error(monkeypatch):
     _without_stored_pix_client_codes(monkeypatch)
     monkeypatch.setenv("PIX_CLIENT_CKD_CODES", "CKD-OK")
@@ -282,6 +297,32 @@ def test_client_open_wraps_remote_error(monkeypatch):
     assert result["status"] == "remote_error"
     assert result["message"] == "Nerver PIX 接口调用失败，请稍后重试"
     assert "remote timeout" not in result["message"]
+
+
+def test_client_open_redacts_remote_business_failure(monkeypatch):
+    _without_stored_pix_client_codes(monkeypatch)
+    monkeypatch.setenv("PIX_CLIENT_CKD_CODES", "CKD-OK")
+
+    def fake_call(self, *, endpoint_path: str, body: dict) -> dict:  # noqa: ANN001
+        return {
+            "ok": False,
+            "reason": "token ac_secret_customer_token rejected",
+            "message": "invalid token ac_secret_customer_token",
+            "request_id": "req_leak_check",
+        }
+
+    monkeypatch.setattr(PixGptPlusService, "_call_remote_pix", fake_call)
+
+    result = PixGptPlusService().generate_for_client_token(
+        {"ckd": "CKD-OK", "credential": "ac_secret_customer_token"}
+    )
+
+    assert result["ok"] is False
+    assert result["status"] == "remote_failed"
+    assert result["message"] == "Nerver PIX 返回失败，请稍后重试"
+    assert result["reason"] == "remote_failed"
+    assert result["request_id"] == "req_leak_check"
+    assert "ac_secret_customer_token" not in str(result)
 
 
 def test_client_open_uses_config_store_ckd_codes_with_multiple_separators(monkeypatch):

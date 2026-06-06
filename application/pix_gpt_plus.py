@@ -216,7 +216,13 @@ class PixGptPlusService:
                 message="CKD 授权码无效",
             )
 
-        token = self._extract_client_token(credential)
+        token, credential_error = self._extract_client_token(credential)
+        if credential_error == "invalid_credential":
+            return _client_response(
+                ok=False,
+                status="invalid_credential",
+                message="Session JSON 格式无效",
+            )
         if not token:
             return _client_response(
                 ok=False,
@@ -259,17 +265,17 @@ class PixGptPlusService:
         configured = _config_value("pix_client_ckd_codes", "PIX_CLIENT_CKD_CODES", "")
         return _split_codes(configured)
 
-    def _extract_client_token(self, credential: str) -> str:
+    def _extract_client_token(self, credential: str) -> tuple[str, str]:
         raw = credential.strip()
         if not raw:
-            return ""
+            return "", ""
         if raw.startswith("{") or raw.startswith("["):
             try:
                 parsed = json.loads(raw)
             except ValueError:
-                return ""
-            return _find_token_in_json(parsed)
-        return raw
+                return "", "invalid_credential"
+            return _find_token_in_json(parsed), ""
+        return raw, ""
 
     def _client_result_from_remote(
         self,
@@ -280,24 +286,31 @@ class PixGptPlusService:
     ) -> dict[str, Any]:
         ok = bool(remote.get("ok"))
         status = "success" if ok else "remote_failed"
-        message = _remote_text(remote.get("message")) or (
-            "PIX 已生成"
-            if ok
-            else f"Nerver PIX 返回失败: {_remote_text(remote.get('reason')) or 'unknown'}"
-        )
+        if ok:
+            return _client_response(
+                ok=True,
+                status=status,
+                message="PIX 已生成",
+                extra={
+                    "mode": mode,
+                    "endpoint": endpoint_path,
+                    "reason": "ok",
+                    "pix_qr_data": _remote_text(remote.get("pix_qr_data")),
+                    "pix_qr_image_url": _remote_text(remote.get("pix_qr_image_url")),
+                    "pix_hosted_url": _remote_text(remote.get("pix_hosted_url")),
+                    "stripe_hosted_url": _remote_text(remote.get("stripe_hosted_url")),
+                    "pix_expires_iso": _remote_text(remote.get("pix_expires_iso")),
+                    "request_id": _remote_text(remote.get("request_id")),
+                },
+            )
         return _client_response(
-            ok=ok,
+            ok=False,
             status=status,
-            message=message,
+            message="Nerver PIX 返回失败，请稍后重试",
             extra={
                 "mode": mode,
                 "endpoint": endpoint_path,
-                "reason": _remote_text(remote.get("reason")),
-                "pix_qr_data": _remote_text(remote.get("pix_qr_data")),
-                "pix_qr_image_url": _remote_text(remote.get("pix_qr_image_url")),
-                "pix_hosted_url": _remote_text(remote.get("pix_hosted_url")),
-                "stripe_hosted_url": _remote_text(remote.get("stripe_hosted_url")),
-                "pix_expires_iso": _remote_text(remote.get("pix_expires_iso")),
+                "reason": "remote_failed",
                 "request_id": _remote_text(remote.get("request_id")),
             },
         )
