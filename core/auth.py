@@ -22,6 +22,7 @@ _PUBLIC_PREFIXES = (
     "/api/auth/",
     "/api/sms/pingme/callback",
     "/api/pix-gpt-plus/client/",
+    "/api/luckmail/client/",
 )
 
 

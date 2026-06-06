@@ -53,6 +53,7 @@ from api.config import router as config_router
 from core.auth import AuthMiddleware
 from api.health import router as health_router
 from api.lifecycle import router as lifecycle_router
+from api.luckmail_client import router as luckmail_client_router
 from api.platform_capabilities import router as platform_capabilities_router
 from api.platforms import router as platforms_router
 from api.pix_gpt_plus import router as pix_gpt_plus_router
@@ -116,6 +117,7 @@ app.include_router(bitbrowser_profiles_router, prefix="/api")
 app.include_router(config_router, prefix="/api")
 app.include_router(health_router, prefix="/api")
 app.include_router(lifecycle_router, prefix="/api")
+app.include_router(luckmail_client_router, prefix="/api")
 app.include_router(platforms_router, prefix="/api")
 app.include_router(platform_capabilities_router, prefix="/api")
 app.include_router(pix_gpt_plus_router, prefix="/api")

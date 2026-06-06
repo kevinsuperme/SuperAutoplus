@@ -182,3 +182,73 @@ def test_luckmail_client_code_sanitizes_remote_error(monkeypatch):
         "email": "user@example.com",
     }
     assert "tok_secret" not in str(result)
+
+
+def test_luckmail_client_code_endpoint_uses_service(monkeypatch):
+    from fastapi import FastAPI
+    from fastapi.testclient import TestClient
+
+    from api.luckmail_client import router
+    from application.luckmail_client import LuckMailClientCodeService
+
+    captured: dict[str, object] = {}
+
+    def fake_get_code(self, payload: dict) -> dict:  # noqa: ANN001
+        captured["payload"] = payload
+        return {
+            "ok": True,
+            "status": "success",
+            "message": "验证码已获取",
+            "email": "user@example.com",
+            "code": "123456",
+        }
+
+    monkeypatch.setattr(LuckMailClientCodeService, "get_code", fake_get_code)
+
+    app = FastAPI()
+    app.include_router(router, prefix="/api")
+    local_client = TestClient(app)
+
+    response = local_client.post(
+        "/api/luckmail/client/code",
+        json={"ticket": "user@example.com----tok_abc"},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["code"] == "123456"
+    assert captured["payload"] == {"ticket": "user@example.com----tok_abc"}
+
+
+def test_luckmail_client_code_endpoint_is_public(monkeypatch):
+    from fastapi import FastAPI
+    from fastapi.testclient import TestClient
+
+    from api.luckmail_client import router
+    from application.luckmail_client import LuckMailClientCodeService
+    from core.auth import AuthMiddleware
+
+    monkeypatch.setenv("APP_PASSWORD", "admin-password")
+
+    def fake_get_code(self, payload: dict) -> dict:  # noqa: ANN001
+        return {
+            "ok": True,
+            "status": "success",
+            "message": "验证码已获取",
+            "email": "user@example.com",
+            "code": "123456",
+        }
+
+    monkeypatch.setattr(LuckMailClientCodeService, "get_code", fake_get_code)
+
+    app = FastAPI()
+    app.add_middleware(AuthMiddleware)
+    app.include_router(router, prefix="/api")
+    local_client = TestClient(app)
+
+    response = local_client.post(
+        "/api/luckmail/client/code",
+        json={"ticket": "user@example.com----tok_abc"},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["status"] == "success"
