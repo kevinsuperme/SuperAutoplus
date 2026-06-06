@@ -20,8 +20,10 @@
 - `tests/test_api_luckmail_client.py`: service, token-only, auth-public and sanitized-error tests.
 - `tests/test_luckmail_mailbox.py`: LuckMail provider and purchased-token endpoint tests.
 - `frontend/src/pages/LuckMailCodeClient.tsx`: public customer page.
+- `frontend/src/lib/session-token.ts`: extracts ChatGPT Access Token from copied session JSON or raw token text.
 - `frontend/src/lib/public-routes.ts`: includes `/luckmail-code`.
 - `frontend/src/App.tsx`: renders `/luckmail-code` before auth gating.
+- `frontend/tests/session-token.test.mjs`: Node test coverage for Access Token extraction behavior.
 
 ## Current Input Contract
 
@@ -85,14 +87,34 @@ Successful response:
 }
 ```
 
+## Current ChatGPT Access Token Helper
+
+The `/luckmail-code` page includes a client-side helper for customers who need to obtain a ChatGPT Access Token during the same workflow.
+
+Current behavior:
+
+- `打开 Session` opens `https://chatgpt.com/api/auth/session` in a new tab.
+- The customer copies the session page content and returns to `/luckmail-code`.
+- `从剪贴板填入` reads clipboard text and extracts `accessToken`, `access_token`, `token`, or `primary_token`.
+- The Access Token textarea also supports manual paste of session JSON. If a token is recognized, the pasted JSON is replaced with the pure token.
+- The Access Token is held only in frontend state. It is not written to local storage and is not submitted to `POST /api/luckmail/client/code`.
+
+Browser constraints:
+
+- A public web page cannot force the system browser to open an incognito/private window.
+- A public web page cannot read `chatgpt.com` page contents across origins.
+- Clipboard reads can be blocked by browser permissions or non-secure HTTP contexts, so manual paste remains the fallback path.
+
 ## Verification Commands
 
 Use these commands after changes touching LuckMail:
 
 ```bash
-python -m pytest tests/test_luckmail_mailbox.py tests/test_api_luckmail_client.py -q
 cd frontend
+node --test tests/session-token.test.mjs
 npm run build
+cd ..
+python -m pytest tests/test_luckmail_mailbox.py tests/test_api_luckmail_client.py -q
 ```
 
 Optional online smoke:

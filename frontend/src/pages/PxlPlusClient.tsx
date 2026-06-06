@@ -1,16 +1,22 @@
 import { useMemo, useState } from "react";
-import type { FormEvent } from "react";
+import type { ClipboardEvent, FormEvent } from "react";
 import {
   AlertCircle,
   CheckCircle2,
+  ClipboardPaste,
   Copy,
   ExternalLink,
+  KeyRound,
   Loader2,
   QrCode,
   ShieldCheck,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import {
+  extractAccessTokenFromSessionText,
+  maskAccessToken,
+} from "@/lib/session-token";
 import { API, cn } from "@/lib/utils";
 
 type ClientOpenResponse = {
@@ -23,6 +29,8 @@ type ClientOpenResponse = {
   stripe_hosted_url?: string;
   pix_expires_iso?: string;
   request_id?: string;
+  account_id?: number;
+  email?: string;
 };
 
 type BannerState = {
@@ -47,6 +55,8 @@ function clip(value: string, head = 18, tail = 12) {
   if (value.length <= head + tail + 3) return value;
   return `${value.slice(0, head)}...${value.slice(-tail)}`;
 }
+
+const CHATGPT_SESSION_URL = "https://chatgpt.com/api/auth/session";
 
 function safeHttpUrl(value?: string) {
   if (!value) return "";
@@ -78,7 +88,7 @@ export default function PxlPlusClient() {
   const [result, setResult] = useState<ClientOpenResponse | null>(null);
   const [banner, setBanner] = useState<BannerState>({
     tone: "neutral",
-    message: "填写 CKD 和 Access Token / Session JSON 后即可生成 PIX 支付信息。",
+    message: "填写 CKD 和 Access Token 后即可生成 PIX 支付信息。",
   });
 
   const hasSuccessPayload = useMemo(
@@ -92,6 +102,52 @@ export default function PxlPlusClient() {
       ),
     [result],
   );
+  const tokenPreview = useMemo(() => maskAccessToken(credential), [credential]);
+
+  const openSessionPage = () => {
+    window.open(CHATGPT_SESSION_URL, "_blank", "noopener,noreferrer");
+    setBanner({
+      tone: "neutral",
+      message: "已打开 ChatGPT Session 页面，复制页面内容后可从剪贴板填入。",
+    });
+  };
+
+  const pasteSessionToken = async () => {
+    try {
+      const clipboardText = await navigator.clipboard.readText();
+      const token = extractAccessTokenFromSessionText(clipboardText);
+      if (!token) {
+        setBanner({
+          tone: "error",
+          message: "未能从剪贴板内容中识别 Access Token。",
+        });
+        return;
+      }
+      setCredential(token);
+      setBanner({
+        tone: "success",
+        message: "Access Token 已填入页面。",
+      });
+    } catch {
+      setBanner({
+        tone: "error",
+        message: "无法读取剪贴板，请确认浏览器权限后重试。",
+      });
+    }
+  };
+
+  const pasteAccessTokenText = (event: ClipboardEvent<HTMLTextAreaElement>) => {
+    const clipboardText = event.clipboardData.getData("text");
+    const token = extractAccessTokenFromSessionText(clipboardText);
+    if (!token || token === clipboardText.trim()) return;
+
+    event.preventDefault();
+    setCredential(token);
+    setBanner({
+      tone: "success",
+      message: "Access Token 已从粘贴内容中提取。",
+    });
+  };
 
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -109,7 +165,7 @@ export default function PxlPlusClient() {
       setResult(null);
       setBanner({
         tone: "error",
-        message: "请输入 Access Token 或 Session JSON。",
+        message: "请输入 Access Token。",
       });
       return;
     }
@@ -117,7 +173,7 @@ export default function PxlPlusClient() {
     setSubmitting(true);
     setCopied(false);
     setResult(null);
-    setBanner({ tone: "loading", message: "正在创建 ChatGPT Plus PIX 订单..." });
+    setBanner({ tone: "loading", message: "正在保存 token 并创建 ChatGPT Plus PIX 订单..." });
 
     try {
       const response = await fetch(`${API}/pix-gpt-plus/client/open`, {
@@ -180,7 +236,7 @@ export default function PxlPlusClient() {
                   ChatGPT Plus 自助开通
                 </h1>
                 <p className="mt-1 text-sm text-[var(--text-muted)]">
-                  提交凭据后生成 PIX QR / EMV 和托管支付链接。
+                  提交 token 后生成 PIX QR / EMV 和托管支付链接。
                 </p>
               </div>
             </div>
@@ -230,22 +286,54 @@ export default function PxlPlusClient() {
                 />
               </div>
 
-              <div>
-                <label
-                  htmlFor="pxl-client-credential"
-                  className="mb-1.5 block text-sm font-medium text-[var(--text-secondary)]"
-                >
-                  Access Token / Session JSON
-                </label>
+              <div className="min-w-0 max-w-full overflow-hidden rounded-xl border border-sky-500/25 bg-sky-500/10 p-3">
+                <div className="mb-3 flex items-center justify-between gap-3">
+                  <label
+                    htmlFor="pxl-client-credential"
+                    className="flex min-w-0 items-center gap-2 text-sm font-medium text-sky-700 dark:text-sky-200"
+                  >
+                    <KeyRound className="h-4 w-4 shrink-0 text-sky-600 dark:text-sky-300" />
+                    <span className="truncate">ChatGPT Access Token</span>
+                  </label>
+                  {tokenPreview ? (
+                    <span className="max-w-[148px] truncate font-mono text-xs text-[var(--text-muted)]">
+                      {tokenPreview}
+                    </span>
+                  ) : null}
+                </div>
                 <textarea
                   id="pxl-client-credential"
                   value={credential}
                   onChange={(event) => setCredential(event.target.value)}
-                  placeholder="粘贴 access token，或完整 session JSON"
-                  className="control-surface control-surface-mono min-h-36 w-full resize-y"
+                  onPaste={pasteAccessTokenText}
+                  placeholder="从 ChatGPT Session JSON 自动填入或粘贴完整 token"
+                  className="control-surface control-surface-mono min-h-28 w-full resize-y break-all"
                   disabled={submitting}
                   spellCheck={false}
+                  wrap="soft"
                 />
+                <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={openSessionPage}
+                    disabled={submitting}
+                    className="border-sky-500/35 text-sky-700 hover:bg-sky-600 dark:text-sky-200"
+                  >
+                    <ExternalLink className="mr-1.5 h-3.5 w-3.5" />
+                    打开 Session
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={pasteSessionToken}
+                    disabled={submitting}
+                    className="border-sky-500/35 text-sky-700 hover:bg-sky-600 dark:text-sky-200"
+                  >
+                    <ClipboardPaste className="mr-1.5 h-3.5 w-3.5" />
+                    从剪贴板填入
+                  </Button>
+                </div>
               </div>
 
               <Button
@@ -280,6 +368,11 @@ export default function PxlPlusClient() {
                     {result.request_id ? (
                       <p className="mt-1 font-mono text-xs text-[var(--text-muted)]">
                         request_id: {clip(result.request_id, 16, 10)}
+                      </p>
+                    ) : null}
+                    {result.account_id ? (
+                      <p className="mt-1 font-mono text-xs text-[var(--text-muted)]">
+                        账号已保存: #{result.account_id}
                       </p>
                     ) : null}
                   </div>
@@ -348,6 +441,9 @@ export default function PxlPlusClient() {
                           label="过期时间"
                           value={formatExpiry(result.pix_expires_iso)}
                         />
+                      ) : null}
+                      {result.email ? (
+                        <InfoLine label="后台账号" value={result.email} />
                       ) : null}
                     </div>
                   </div>

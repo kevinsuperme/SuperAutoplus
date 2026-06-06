@@ -88,10 +88,176 @@ http://127.0.0.1:8000
 
 Provider API Key 推荐通过 Web UI 写入 `provider_settings`，不要提交到仓库。
 
-## 代码组织约定
+## 项目架构与代码组织
+
+项目采用分层架构（API → Application → Domain → Infrastructure），核心共享模块位于 `core/`。
+
+### 分层说明
+
+| 层 | 目录 | 职责 |
+| --- | --- | --- |
+| API 适配 | `api/` | HTTP 路由，只做请求模型验证和服务调用，不承载复杂业务逻辑 |
+| 业务编排 | `application/` | 业务流程、多步骤编排、跨服务调用 |
+| 领域模型 | `domain/` | 纯数据类：`AccountRecord`、`TaskSummary`、`ProxyRecord`、`PlatformAction` 等 |
+| 数据访问 | `infrastructure/` | Repository 模式：`AccountsRepository`、`TasksReadRepository`、`ProxiesRepository` 等 |
+
+### `api/` 路由模块
+
+| 模块 | 说明 |
+| --- | --- |
+| `api.accounts` | 账号 CRUD、导入导出、OAuth callback、Phone bind |
+| `api.account_checks` | 单账号/批量有效性检测、计划刷新 |
+| `api.actions` | 平台能力动作列表和执行 |
+| `api.auth` | 密码保护状态和登录 |
+| `api.bitbrowser_profiles` | BitBrowser profile 池配置 |
+| `api.config` | 全局配置读写和选项 |
+| `api.health` | 健康检查和就绪检查 |
+| `api.lifecycle` | 生命周期检查、刷新、预警触发 |
+| `api.luckmail_client` | LuckMail 公开客户验证码查询 |
+| `api.pix_gpt_plus` | 后台 PIX 批量生成和公开 PXL 客户开通 |
+| `api.platforms` | 平台列表和桌面状态 |
+| `api.platform_capabilities` | 平台能力覆盖保存/重置 |
+| `api.provider_definitions` | Provider 定义 CRUD 和驱动列表 |
+| `api.provider_settings` | Provider 设置 CRUD 和在线测试 |
+| `api.proxies` | 代理池 CRUD、批量导入、检测 |
+| `api.sms` | HeroSMS/SMSBower 查询、PingMe callback |
+| `api.sms_pool` | 接码号码池黑名单 |
+| `api.stats` | 成功率、平台、日期、代理和错误统计 |
+| `api.system` | Solver 状态、重启和版本 |
+| `api.tasks` | 任务查询和事件列表 |
+| `api.task_commands` | 任务创建、取消和 SSE 日志 |
+| `api.task_logs` | 历史任务日志 |
+
+### `application/` 业务服务
+
+| 模块 | 说明 |
+| --- | --- |
+| `accounts.py` | 账号资产展示、更新 |
+| `account_exports.py` | 账号导出 |
+| `account_checks.py` | 账号有效性检测 |
+| `actions.py` | 平台能力动作执行 |
+| `bitbrowser_profiles.py` | BitBrowser 浏览器 profile 配置 |
+| `config.py` | 全局配置选项 |
+| `ctf_plus.py` | CTF Plus 账号按需注册、域名绑定和用户管理 |
+| `gopay_pay_chatgpt.py` | GoPay 协议付款 ChatGPT Plus 批量支付 |
+| `health.py` | 系统健康状态 |
+| `luckmail_client.py` | 客户粘贴文本解析、LuckMail token 查询和脱敏响应 |
+| `phone_binding.py` | 手机号绑定 |
+| `pix_gpt_plus.py` | Nerver PIX 调用、后台批量模式、公开 CKD 客户模式 |
+| `platforms.py` | 平台清单和桌面状态 |
+| `platform_capabilities.py` | 平台能力覆盖 |
+| `provider_definitions.py` | Provider 定义管理 |
+| `provider_settings.py` | Provider 运行时设置 |
+| `proxies.py` | 代理池管理 |
+| `system.py` | 系统状态 |
+| `tasks.py` | 任务持久化创建和执行 |
+| `task_commands.py` | 任务命令（创建、取消、claim） |
+| `tasks_query.py` | 任务查询 |
+| `task_logs.py` | 任务日志 |
+
+### `core/` 核心共享模块
+
+`core/` 是跨层共享的基础设施，不依赖 `api/`、`application/`、`infrastructure/` 或 `domain/`。
+
+**数据库与模型：**
+
+| 模块 | 说明 |
+| --- | --- |
+| `db.py` | SQLModel 数据库模型（`AccountModel`、`TaskModel` 等）、初始化、迁移 |
+| `account_graph.py` | 账户图数据模型：序列化、合并、同步、状态统计 |
+
+**平台与 Provider 体系：**
+
+| 模块 | 说明 |
+| --- | --- |
+| `registry.py` | 平台插件注册中心：自动发现、加载、管理平台插件 |
+| `base_platform.py` | 平台基类：定义注册、OAuth、能力等标准接口 |
+| `base_mailbox.py` | 邮箱基类：定义邮箱适配器接口 |
+| `base_sms.py` | 短信基类：定义接码适配器接口 |
+| `base_captcha.py` | 验证码基类：定义打码适配器接口 |
+| `base_executor.py` | 执行器基类：定义浏览器/协议执行器接口 |
+| `base_identity.py` | 身份基类：定义身份提供者接口 |
+| `capability_registry.py` | 能力注册表：`CapabilityDefinition` 和 `CapabilityRegistry` |
+| `provider_drivers.py` | Provider 驱动定义和元数据 |
+
+**注册流程（`core/registration/`）：**
+
+| 模块 | 说明 |
+| --- | --- |
+| `flows.py` | 注册流程编排：`RegistrationFlow` 标准流程 |
+| `adapters.py` | 注册适配器：不同平台的自定义注册逻辑 |
+| `errors.py` | 注册异常定义 |
+| `helpers.py` | 注册辅助函数 |
+| `models.py` | 注册数据模型 |
+
+**执行器（`core/executors/`）：**
+
+| 模块 | 说明 |
+| --- | --- |
+| `playwright.py` | Playwright 浏览器自动化执行器 |
+| `protocol.py` | 协议级 HTTP 执行器 |
+
+**邮箱与短信：**
+
+| 模块 | 说明 |
+| --- | --- |
+| `luckmail_mailbox.py` | LuckMail 邮箱适配器 |
+| `outlook_email_mailbox.py` | Outlook 邮箱适配器 |
+| `local_ms_mailbox.py` | 本地微软邮箱池适配器 |
+| `generic_http_mailbox.py` | 通用 HTTP 邮箱适配器 |
+| `pingme_sms.py` | PingMe 接码适配器 |
+
+**OAuth 与认证：**
+
+| 模块 | 说明 |
+| --- | --- |
+| `auth.py` | 认证中间件：`APP_PASSWORD` 保护、公开前缀白名单 |
+| `oauth_browser.py` | OAuth 浏览器流程 |
+| `manual_oauth_browser.py` | 手动 OAuth 浏览器流程 |
+
+**工具与基础设施：**
+
+| 模块 | 说明 |
+| --- | --- |
+| `config_store.py` | 全局配置键值存储（`ConfigStore`） |
+| `lifecycle.py` | 生命周期管理器：账号有效性检测、token 刷新、过期预警 |
+| `scheduler.py` | 后台调度器：定时任务和周期检查 |
+| `server_guard.py` | 服务守护：防止重复启动、优雅关闭 |
+| `version.py` | 版本信息 |
+| `http_client.py` | HTTP 客户端封装 |
+| `proxy_pool.py` | 代理池管理 |
+| `proxy_providers.py` | 代理供应商适配 |
+| `any2api_sync.py` | Any2API 同步工具 |
+| `tls.py` | TLS 配置 |
+| `datetime_utils.py` | 日期时间工具函数 |
+| `desktop_apps.py` | 桌面应用管理 |
+| `platform_accounts.py` | 平台账号管理 |
+| `account_display.py` | 账号展示格式化 |
+
+### `services/` 服务层
+
+| 模块 | 说明 |
+| --- | --- |
+| `task_runtime.py` | 单进程持久化任务调度器（`TaskRuntime`）：并发控制、任务 claim、worker 线程管理 |
+| `solver_manager.py` | Turnstile Solver 子进程管理 |
+| `turnstile_solver/` | 基于 Quart/patchright/Camoufox 的 Turnstile Solver 子服务 |
+
+### `gopay-auto-protocol/` 协议实验
+
+GoPay 协议逆向实验、抓包分析、工具代码和部署方案。独立于主项目运行，不参与主后端构建。
+
+### `scripts/` 和 `tests/`
+
+| 目录 | 说明 |
+| --- | --- |
+| `scripts/smoke.py` | 启动后 smoke 验证脚本 |
+| `tests/` | pytest 测试：`test_api_*.py` 覆盖 API 模块，`test_any2api_sync.py` 等覆盖核心工具 |
+
+### 开发约定
 
 - 新 HTTP 路由放在 `api/`，只做请求模型和服务调用。
 - 业务逻辑放在 `application/`。
+- 新领域模型放在 `domain/`。
 - 新数据访问逻辑放在 `infrastructure/` repository。
 - 新平台能力放在 `platforms/<name>/plugin.py` 和相关 worker/core 文件。
 - 新 Provider 驱动放在 `providers/<type>/` 并注册到 `providers.registry`。

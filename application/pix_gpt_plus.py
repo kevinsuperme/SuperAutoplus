@@ -3,14 +3,17 @@ from __future__ import annotations
 import json
 import os
 import re
+from datetime import datetime, timezone
+from hashlib import sha256
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Any
 
 import httpx
-from sqlmodel import Session
+from sqlmodel import Session, select
 
 from core.config_store import config_store
-from core.db import AccountModel, engine
+from core.account_graph import patch_account_graph
+from core.db import AccountCredentialModel, AccountModel, engine
 from core.platform_accounts import build_platform_account
 
 
@@ -23,6 +26,7 @@ PIX_ENDPOINTS = {
 }
 
 CLIENT_TOKEN_KEYS = ("access_token", "accessToken", "primary_token", "token")
+CLIENT_EMAIL_KEYS = ("email", "email_address", "mail")
 
 
 def _split_codes(value: str) -> set[str]:
@@ -60,6 +64,29 @@ def _find_token_in_json(value: Any) -> str:
     return ""
 
 
+def _find_email_in_json(value: Any) -> str:
+    if isinstance(value, dict):
+        user = value.get("user")
+        if isinstance(user, dict):
+            email = _remote_text(user.get("email"))
+            if "@" in email:
+                return email
+        for key in CLIENT_EMAIL_KEYS:
+            email = _remote_text(value.get(key))
+            if "@" in email:
+                return email
+        for item in value.values():
+            email = _find_email_in_json(item)
+            if email:
+                return email
+    if isinstance(value, list):
+        for item in value:
+            email = _find_email_in_json(item)
+            if email:
+                return email
+    return ""
+
+
 def _as_int(value: Any, default: int) -> int:
     try:
         return int(value)
@@ -76,6 +103,19 @@ def _config_value(key: str, env_key: str, default: str = "") -> str:
 
 def _remote_text(value: Any) -> str:
     return str(value or "").strip()
+
+
+def _mask_secret(value: str, head: int = 6, tail: int = 4) -> str:
+    text = _remote_text(value)
+    if not text:
+        return ""
+    if len(text) <= head + tail + 3:
+        return text
+    return f"{text[:head]}...{text[-tail:]}"
+
+
+def _utc_iso() -> str:
+    return datetime.now(timezone.utc).isoformat()
 
 
 class PixGptPlusService:
@@ -216,7 +256,7 @@ class PixGptPlusService:
                 message="CKD 授权码无效",
             )
 
-        token, credential_error = self._extract_client_token(credential)
+        token, email, credential_error = self._extract_client_credential(credential)
         if credential_error == "invalid_credential":
             return _client_response(
                 ok=False,
@@ -229,6 +269,12 @@ class PixGptPlusService:
                 status="missing_token",
                 message="未能从 Access Token / Session JSON 中提取 token",
             )
+
+        account_id, account_email = self._save_client_token_account(
+            ckd=ckd,
+            token=token,
+            email=email,
+        )
 
         mode = str(payload.get("api_mode") or "short").strip().lower()
         endpoint_path = PIX_ENDPOINTS.get(mode)
@@ -252,30 +298,138 @@ class PixGptPlusService:
                 ok=False,
                 status="remote_error",
                 message="Nerver PIX 接口调用失败，请稍后重试",
-                extra={"mode": mode, "endpoint": endpoint_path},
+                extra={
+                    "mode": mode,
+                    "endpoint": endpoint_path,
+                    "account_id": account_id,
+                    "email": account_email,
+                },
             )
 
-        return self._client_result_from_remote(
+        result = self._client_result_from_remote(
             remote=remote,
             mode=mode,
             endpoint_path=endpoint_path,
+            account_id=account_id,
+            email=account_email,
         )
+        self._patch_client_account_pix_result(
+            account_id=account_id,
+            remote=remote,
+            status=str(result.get("status") or ""),
+        )
+        return result
 
     def _client_ckd_codes(self) -> set[str]:
         configured = _config_value("pix_client_ckd_codes", "PIX_CLIENT_CKD_CODES", "")
         return _split_codes(configured)
 
-    def _extract_client_token(self, credential: str) -> tuple[str, str]:
+    def _extract_client_credential(self, credential: str) -> tuple[str, str, str]:
         raw = credential.strip()
         if not raw:
-            return "", ""
+            return "", "", ""
         if raw.startswith("{") or raw.startswith("["):
             try:
                 parsed = json.loads(raw)
             except ValueError:
-                return "", "invalid_credential"
-            return _find_token_in_json(parsed), ""
-        return raw, ""
+                return "", "", "invalid_credential"
+            return _find_token_in_json(parsed), _find_email_in_json(parsed), ""
+        return raw, "", ""
+
+    def _save_client_token_account(
+        self,
+        *,
+        ckd: str,
+        token: str,
+        email: str,
+    ) -> tuple[int, str]:
+        normalized_email = _remote_text(email).lower()
+        if not normalized_email or "@" not in normalized_email:
+            digest = sha256(_remote_text(ckd).encode("utf-8")).hexdigest()[:12]
+            normalized_email = f"pxl-client-{digest}@local"
+
+        with Session(engine) as session:
+            model = session.exec(
+                select(AccountModel).where(
+                    AccountModel.platform == "chatgpt",
+                    AccountModel.email == normalized_email,
+                )
+            ).first()
+            if not model:
+                model = AccountModel(
+                    platform="chatgpt",
+                    email=normalized_email,
+                    password="",
+                    user_id="",
+                )
+                session.add(model)
+                session.commit()
+                session.refresh(model)
+
+            summary_updates = {
+                "source": "pxl-plus-client",
+                "client_source": "pxl-plus-client",
+                "ckd_mask": _mask_secret(ckd),
+                "token_saved": True,
+                "token_saved_at": _utc_iso(),
+                "chips": ["PXL 客户页"],
+            }
+            patch_account_graph(
+                session,
+                model,
+                lifecycle_status="registered",
+                primary_token=token,
+                summary_updates=summary_updates,
+            )
+            credential = session.exec(
+                select(AccountCredentialModel).where(
+                    AccountCredentialModel.account_id == int(model.id or 0),
+                    AccountCredentialModel.key == "access_token",
+                )
+            ).first()
+            if credential:
+                credential.source = "pxl-plus-client"
+                credential.set_metadata(
+                    {
+                        "source": "pxl-plus-client",
+                        "ckd_mask": _mask_secret(ckd),
+                        "saved_at": _utc_iso(),
+                    }
+                )
+                session.add(credential)
+            session.commit()
+            session.refresh(model)
+            return int(model.id or 0), normalized_email
+
+    def _patch_client_account_pix_result(
+        self,
+        *,
+        account_id: int,
+        remote: dict[str, Any],
+        status: str,
+    ) -> None:
+        if account_id <= 0:
+            return
+        with Session(engine) as session:
+            model = session.get(AccountModel, account_id)
+            if not model:
+                return
+            patch_account_graph(
+                session,
+                model,
+                summary_updates={
+                    "source": "pxl-plus-client",
+                    "client_source": "pxl-plus-client",
+                    "last_pix_status": status,
+                    "last_pix_request_id": _remote_text(remote.get("request_id")),
+                    "last_pix_updated_at": _utc_iso(),
+                    "cashier_url": _remote_text(
+                        remote.get("pix_hosted_url")
+                        or remote.get("stripe_hosted_url")
+                    ),
+                },
+            )
+            session.commit()
 
     def _client_result_from_remote(
         self,
@@ -283,6 +437,8 @@ class PixGptPlusService:
         remote: dict[str, Any],
         mode: str,
         endpoint_path: str,
+        account_id: int = 0,
+        email: str = "",
     ) -> dict[str, Any]:
         ok = bool(remote.get("ok"))
         status = "success" if ok else "remote_failed"
@@ -294,6 +450,8 @@ class PixGptPlusService:
                 extra={
                     "mode": mode,
                     "endpoint": endpoint_path,
+                    "account_id": account_id,
+                    "email": email,
                     "reason": "ok",
                     "pix_qr_data": _remote_text(remote.get("pix_qr_data")),
                     "pix_qr_image_url": _remote_text(remote.get("pix_qr_image_url")),
@@ -310,6 +468,8 @@ class PixGptPlusService:
             extra={
                 "mode": mode,
                 "endpoint": endpoint_path,
+                "account_id": account_id,
+                "email": email,
                 "reason": "remote_failed",
                 "request_id": _remote_text(remote.get("request_id")),
             },

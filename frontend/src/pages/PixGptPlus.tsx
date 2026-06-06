@@ -25,6 +25,13 @@ type AccountRow = {
   overview?: any;
   display_summary?: any;
   primary_token?: string;
+  credentials?: Array<{
+    key?: string;
+    value?: string;
+    source?: string;
+    is_primary?: boolean;
+    metadata?: Record<string, any>;
+  }>;
 };
 
 type PixForm = {
@@ -92,7 +99,29 @@ function getCashierUrl(acc: AccountRow): string {
 }
 
 function hasToken(acc: AccountRow): boolean {
-  return Boolean(acc.primary_token || acc.overview?.access_token);
+  return Boolean(getAccessToken(acc));
+}
+
+function getAccessToken(acc: AccountRow): string {
+  const credentialToken =
+    acc.credentials?.find((item) => item.key === "access_token")?.value ||
+    acc.credentials?.find((item) => item.is_primary)?.value ||
+    "";
+  return acc.primary_token || credentialToken || acc.overview?.access_token || "";
+}
+
+function isPxlClientAccount(acc: AccountRow): boolean {
+  return (
+    acc.overview?.client_source === "pxl-plus-client" ||
+    acc.overview?.source === "pxl-plus-client" ||
+    Boolean(
+      acc.credentials?.some(
+        (item) =>
+          item.source === "pxl-plus-client" ||
+          item.metadata?.source === "pxl-plus-client",
+      ),
+    )
+  );
 }
 
 function getModeLabel(mode: string): string {
@@ -499,7 +528,8 @@ export default function PixGptPlus() {
                 <th className="px-3 py-2">邮箱</th>
                 <th className="px-3 py-2">套餐</th>
                 <th className="px-3 py-2">生命周期</th>
-                <th className="px-3 py-2">AC token</th>
+                <th className="px-3 py-2">来源</th>
+                <th className="min-w-[360px] px-3 py-2">Access Token</th>
                 <th className="px-3 py-2">cashier_url</th>
               </tr>
             </thead>
@@ -510,6 +540,7 @@ export default function PixGptPlus() {
                 const subscribed = planState === "subscribed";
                 const checked = selectedIds.has(acc.id);
                 const cashier = getCashierUrl(acc);
+                const accessToken = getAccessToken(acc);
                 return (
                   <tr
                     key={acc.id}
@@ -548,9 +579,30 @@ export default function PixGptPlus() {
                       {lifecycleStatus}
                     </td>
                     <td className="px-3 py-2">
-                      <Badge variant={hasToken(acc) ? "success" : "warning"}>
-                        {hasToken(acc) ? "可用" : "缺失"}
+                      <Badge variant={isPxlClientAccount(acc) ? "success" : "secondary"}>
+                        {isPxlClientAccount(acc) ? "PXL 客户页" : "账号资产"}
                       </Badge>
+                    </td>
+                    <td className="px-3 py-2">
+                      {accessToken ? (
+                        <div className="flex min-w-[340px] items-center gap-2">
+                          <code className="block max-w-[300px] overflow-x-auto whitespace-nowrap rounded-md border border-[var(--border)] bg-[var(--bg-input)] px-2 py-1 font-mono text-[11px] leading-5 text-[var(--text-secondary)]">
+                            {accessToken}
+                          </code>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 shrink-0 px-2"
+                            onClick={() => copyText(accessToken, "Access Token")}
+                          >
+                            <Copy className="mr-1 h-3.5 w-3.5" />
+                            复制
+                          </Button>
+                        </div>
+                      ) : (
+                        <Badge variant="warning">缺失</Badge>
+                      )}
                     </td>
                     <td className="px-3 py-2 text-[var(--text-muted)]">
                       {cashier ? "已有" : "-"}
@@ -561,7 +613,7 @@ export default function PixGptPlus() {
               {accounts.length === 0 && (
                 <tr>
                   <td
-                    colSpan={6}
+                    colSpan={7}
                     className="px-3 py-10 text-center text-[var(--text-muted)]"
                   >
                     {loading ? "正在加载账号..." : "暂无 ChatGPT 账号"}

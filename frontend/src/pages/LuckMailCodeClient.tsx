@@ -1,16 +1,23 @@
 import { useMemo, useState } from "react";
-import type { FormEvent } from "react";
+import type { ClipboardEvent, FormEvent } from "react";
 import {
   AlertCircle,
   CheckCircle2,
   ClipboardCheck,
+  ClipboardPaste,
   Copy,
+  ExternalLink,
+  KeyRound,
   Loader2,
   Mail,
   Search,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import {
+  extractAccessTokenFromSessionText,
+  maskAccessToken,
+} from "@/lib/session-token";
 import { API, cn } from "@/lib/utils";
 
 type CodeResponse = {
@@ -26,6 +33,7 @@ type BannerTone = "neutral" | "loading" | "success" | "error";
 
 const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 const TICKET_SEPARATOR = "----";
+const CHATGPT_SESSION_URL = "https://chatgpt.com/api/auth/session";
 
 function parseTicketPreview(value: string) {
   const trimmed = value.trim();
@@ -63,6 +71,7 @@ async function readCodeResponse(res: Response): Promise<CodeResponse> {
 
 export default function LuckMailCodeClient() {
   const [ticket, setTicket] = useState("");
+  const [accessToken, setAccessToken] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [copied, setCopied] = useState(false);
   const [result, setResult] = useState<CodeResponse | null>(null);
@@ -73,6 +82,52 @@ export default function LuckMailCodeClient() {
   const [activeStep, setActiveStep] = useState<StepKey | null>(null);
 
   const preview = useMemo(() => parseTicketPreview(ticket), [ticket]);
+  const tokenPreview = useMemo(() => maskAccessToken(accessToken), [accessToken]);
+
+  const openSessionPage = () => {
+    window.open(CHATGPT_SESSION_URL, "_blank", "noopener,noreferrer");
+    setBanner({
+      tone: "neutral",
+      message: "已打开 ChatGPT Session 页面，复制页面内容后可从剪贴板填入。",
+    });
+  };
+
+  const pasteSessionToken = async () => {
+    try {
+      const clipboardText = await navigator.clipboard.readText();
+      const token = extractAccessTokenFromSessionText(clipboardText);
+      if (!token) {
+        setBanner({
+          tone: "error",
+          message: "未能从剪贴板内容中识别 Access Token。",
+        });
+        return;
+      }
+      setAccessToken(token);
+      setBanner({
+        tone: "success",
+        message: "Access Token 已填入页面。",
+      });
+    } catch {
+      setBanner({
+        tone: "error",
+        message: "无法读取剪贴板，请确认浏览器权限后重试。",
+      });
+    }
+  };
+
+  const pasteAccessTokenText = (event: ClipboardEvent<HTMLTextAreaElement>) => {
+    const clipboardText = event.clipboardData.getData("text");
+    const token = extractAccessTokenFromSessionText(clipboardText);
+    if (!token || token === clipboardText.trim()) return;
+
+    event.preventDefault();
+    setAccessToken(token);
+    setBanner({
+      tone: "success",
+      message: "Access Token 已从粘贴内容中提取。",
+    });
+  };
 
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -143,10 +198,10 @@ export default function LuckMailCodeClient() {
   };
 
   return (
-    <main className="min-h-screen bg-[var(--bg-base)] px-4 py-6 text-[var(--text-primary)] sm:px-6 lg:px-8">
-      <div className="mx-auto flex min-h-[calc(100vh-3rem)] w-full max-w-4xl items-center justify-center">
-        <section className="grid w-full overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] shadow-[var(--shadow-hard)] lg:grid-cols-[1.08fr_0.92fr]">
-          <div className="border-b border-[var(--border)] p-5 sm:p-6 lg:border-b-0 lg:border-r">
+    <main className="min-h-screen overflow-x-hidden bg-[var(--bg-base)] px-4 py-6 text-[var(--text-primary)] sm:px-6 lg:px-8">
+      <div className="mx-auto flex min-h-[calc(100vh-3rem)] w-full max-w-4xl min-w-0 items-center justify-center">
+        <section className="grid w-full min-w-0 max-w-full overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] shadow-[var(--shadow-hard)] lg:grid-cols-[1.08fr_0.92fr]">
+          <div className="min-w-0 border-b border-[var(--border)] p-5 sm:p-6 lg:border-b-0 lg:border-r">
             <div className="mb-5 flex items-center gap-3">
               <div className="eco-icon h-11 w-11 shrink-0">
                 <Mail className="h-5 w-5" />
@@ -155,7 +210,7 @@ export default function LuckMailCodeClient() {
                 <h1 className="text-xl font-semibold tracking-tight text-[var(--text-primary)]">
                   LuckMail 验证码查询
                 </h1>
-                <p className="mt-1 text-sm text-[var(--text-muted)]">
+                <p className="mt-1 break-words text-sm text-[var(--text-muted)]">
                   粘贴 邮箱----token 或单独 token 后获取验证码。
                 </p>
               </div>
@@ -182,10 +237,60 @@ export default function LuckMailCodeClient() {
               ) : (
                 <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
               )}
-              <span>{banner.message}</span>
+              <span className="min-w-0 break-words">{banner.message}</span>
             </div>
 
             <form className="space-y-4" onSubmit={submit}>
+              <div className="min-w-0 max-w-full overflow-hidden rounded-xl border border-sky-500/25 bg-sky-500/10 p-3">
+                <div className="mb-3 flex items-center justify-between gap-3">
+                  <label
+                    htmlFor="chatgpt-access-token"
+                    className="flex min-w-0 items-center gap-2 text-sm font-medium text-sky-700 dark:text-sky-200"
+                  >
+                    <KeyRound className="h-4 w-4 shrink-0 text-sky-600 dark:text-sky-300" />
+                    <span className="truncate">ChatGPT Access Token</span>
+                  </label>
+                  {tokenPreview ? (
+                    <span className="max-w-[148px] truncate font-mono text-xs text-[var(--text-muted)]">
+                      {tokenPreview}
+                    </span>
+                  ) : null}
+                </div>
+                <textarea
+                  id="chatgpt-access-token"
+                  value={accessToken}
+                  onChange={(event) => setAccessToken(event.target.value)}
+                  onPaste={pasteAccessTokenText}
+                  placeholder="从 ChatGPT Session JSON 自动填入"
+                  className="control-surface control-surface-mono min-h-20 w-full resize-y"
+                  disabled={submitting}
+                  spellCheck={false}
+                  wrap="soft"
+                />
+                <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={openSessionPage}
+                    disabled={submitting}
+                    className="border-sky-500/35 text-sky-700 hover:bg-sky-600 dark:text-sky-200"
+                  >
+                    <ExternalLink className="mr-1.5 h-3.5 w-3.5" />
+                    打开 Session
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={pasteSessionToken}
+                    disabled={submitting}
+                    className="border-sky-500/35 text-sky-700 hover:bg-sky-600 dark:text-sky-200"
+                  >
+                    <ClipboardPaste className="mr-1.5 h-3.5 w-3.5" />
+                    从剪贴板填入
+                  </Button>
+                </div>
+              </div>
+
               <div>
                 <label
                   htmlFor="luckmail-ticket"
@@ -198,9 +303,10 @@ export default function LuckMailCodeClient() {
                   value={ticket}
                   onChange={(event) => setTicket(event.target.value)}
                   placeholder="jadelee7905@outlook.com----tok_894d7778268489752c2c077e7ac6a603 或 tok_894d..."
-                  className="control-surface control-surface-mono min-h-28 w-full resize-y"
+                  className="control-surface control-surface-mono min-h-28 w-full resize-y break-all"
                   disabled={submitting}
                   spellCheck={false}
+                  wrap="soft"
                 />
               </div>
 
@@ -229,7 +335,7 @@ export default function LuckMailCodeClient() {
             </form>
           </div>
 
-          <div className="space-y-5 bg-[var(--bg-pane)]/35 p-5 sm:p-6">
+          <div className="min-w-0 space-y-5 bg-[var(--bg-pane)]/35 p-5 sm:p-6">
             <div>
               <h2 className="text-sm font-semibold text-[var(--text-primary)]">
                 查询状态
