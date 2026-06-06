@@ -102,7 +102,7 @@
 > 📸 _截图将随版本迭代持续更新。_
 ### 交流联系方式
 
-![联系方式](assets/screenshots/QQ群交流.jpg)
+![联系方式](assets/screenshots/qrcode_1780724489871.jpg)
 
 ### gopay注册生成gptplus
 
@@ -144,7 +144,7 @@
 
 ```bash
 # 克隆项目
-git clone https://github.com/asz798838958/SuperAutoplus.git
+git clone https://github.com/superaddmin/Superautoplus.git
 cd SuperAutoplus
 
 # 创建虚拟环境
@@ -165,7 +165,7 @@ cd ..
 
 ```bat
 :: 克隆项目
-git clone https://github.com/asz798838958/SuperAutoplus.git
+git clone https://github.com/superaddmin/Superautoplus.git
 cd SuperAutoplus
 
 :: 创建虚拟环境
@@ -245,7 +245,7 @@ npm run dev
 ### 从源码构建
 
 ```bash
-git clone https://github.com/asz798838958/SuperAutoplus.git
+git clone https://github.com/superaddmin/Superautoplus.git
 cd SuperAutoplus
 docker compose up -d --build
 ```
