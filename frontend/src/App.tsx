@@ -23,6 +23,7 @@ import GoPayGptPlus from "@/pages/GoPayGptPlus";
 import PixGptPlus from "@/pages/PixGptPlus";
 import PlusManager from "@/pages/PlusManager";
 import PxlPlusClient from "@/pages/PxlPlusClient";
+import LuckMailCodeClient from "@/pages/LuckMailCodeClient";
 import UpdateBanner from "@/components/UpdateBanner";
 import {
   ChevronRight,
@@ -501,6 +502,14 @@ function AppContent() {
     return (
       <BrowserRouter>
         <PxlPlusClient />
+      </BrowserRouter>
+    );
+  }
+
+  if (window.location.pathname === "/luckmail-code") {
+    return (
+      <BrowserRouter>
+        <LuckMailCodeClient />
       </BrowserRouter>
     );
   }
