@@ -30,7 +30,14 @@ const TICKET_SEPARATOR = "----";
 function parseTicketPreview(value: string) {
   const trimmed = value.trim();
   const separatorIndex = trimmed.indexOf(TICKET_SEPARATOR);
-  if (separatorIndex < 0) return { email: "", token: "", valid: false };
+  if (separatorIndex < 0) {
+    return {
+      email: "",
+      token: trimmed,
+      valid: trimmed.length > 0 && !trimmed.includes("@") && !/\s/.test(trimmed),
+      tokenOnly: trimmed.length > 0,
+    };
+  }
 
   const email = trimmed.slice(0, separatorIndex).trim();
   const token = trimmed.slice(separatorIndex + TICKET_SEPARATOR.length).trim();
@@ -38,6 +45,7 @@ function parseTicketPreview(value: string) {
     email,
     token,
     valid: EMAIL_RE.test(email) && token.length > 0,
+    tokenOnly: false,
   };
 }
 
@@ -80,7 +88,7 @@ export default function LuckMailCodeClient() {
     if (!preview.valid) {
       setResult(null);
       setActiveStep("parse");
-      setBanner({ tone: "error", message: "格式应为 邮箱----token。" });
+      setBanner({ tone: "error", message: "格式应为 邮箱----token 或单独 token。" });
       return;
     }
 
@@ -189,7 +197,7 @@ export default function LuckMailCodeClient() {
                   id="luckmail-ticket"
                   value={ticket}
                   onChange={(event) => setTicket(event.target.value)}
-                  placeholder="jadelee7905@outlook.com----tok_894d7778268489752c2c077e7ac6a603"
+                  placeholder="jadelee7905@outlook.com----tok_894d7778268489752c2c077e7ac6a603 或 tok_894d..."
                   className="control-surface control-surface-mono min-h-28 w-full resize-y"
                   disabled={submitting}
                   spellCheck={false}
@@ -200,7 +208,7 @@ export default function LuckMailCodeClient() {
                 <div className="flex items-center justify-between gap-3">
                   <span className="text-[var(--text-muted)]">已解析邮箱</span>
                   <span className="min-w-0 truncate font-mono text-[var(--text-secondary)]">
-                    {preview.email || "-"}
+                    {preview.email || (preview.tokenOnly ? "提交后识别邮箱" : "-")}
                   </span>
                 </div>
               </div>
@@ -229,7 +237,7 @@ export default function LuckMailCodeClient() {
               <div className="mt-4 space-y-3">
                 <StatusStep
                   label="解析文本"
-                  description="识别邮箱与 token"
+                  description="识别邮箱 token 或单独 token"
                   done={preview.valid || Boolean(result)}
                   active={activeStep === "parse"}
                 />

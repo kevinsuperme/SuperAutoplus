@@ -276,14 +276,18 @@ class LuckMailMailbox(BaseMailbox):
         code_pattern: str | None = None,
     ) -> str:
         order_no = _text(account.account_id)
+        payload = self.get_code_payload_now(order_no)
+        return self._extract_code(payload, code_pattern)
+
+    def get_code_payload_now(self, order_no: str) -> dict[str, Any]:
+        order_no = _text(order_no)
         if not order_no:
             raise RuntimeError("LuckMail 账号缺少 order_no，无法查询验证码")
-
         payload = self._get_json(f"/api/v1/openapi/order/{quote(order_no, safe='')}/code")
         status = _text(payload.get("status")).lower()
         if status in {"timeout", "cancelled", "canceled", "failed", "fail"}:
             raise RuntimeError(f"LuckMail 订单状态异常: {status or 'unknown'}")
-        return self._extract_code(payload, code_pattern)
+        return payload
 
     def wait_for_code(
         self,

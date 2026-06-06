@@ -255,3 +255,34 @@ def test_luckmail_get_code_now_queries_single_order_without_waiting(monkeypatch)
             },
         }
     ]
+
+
+def test_luckmail_get_code_payload_now_returns_remote_email(monkeypatch):
+    session = FakeSession(
+        [
+            FakeResponse(
+                {
+                    "code": 0,
+                    "data": {
+                        "order_no": "tok_abc123",
+                        "email_address": "user@example.com",
+                        "status": "success",
+                        "verification_code": "654321",
+                    },
+                }
+            ),
+        ]
+    )
+    monkeypatch.setattr("requests.Session", lambda: session)
+
+    mailbox = LuckMailMailbox(
+        base_url="https://mails.example.test",
+        api_key="fake-api-key",
+        project_code="openai",
+        email_type="ms_graph",
+    )
+
+    payload = mailbox.get_code_payload_now("tok_abc123")
+
+    assert payload["email_address"] == "user@example.com"
+    assert payload["verification_code"] == "654321"

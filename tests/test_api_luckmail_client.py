@@ -92,6 +92,42 @@ def test_luckmail_client_code_success_uses_configured_api_key(monkeypatch):
     assert fake_session.calls[0]["headers"]["X-API-Key"] == "fake-api-key"
 
 
+def test_luckmail_client_code_success_accepts_token_only_and_uses_remote_email(monkeypatch):
+    from application.luckmail_client import LuckMailClientCodeService
+
+    _seed_luckmail_setting()
+    fake_session = FakeSession(
+        [
+            FakeResponse(
+                {
+                    "code": 0,
+                    "data": {
+                        "order_no": "tok_894d7778268489752c2c077e7ac6a603",
+                        "email_address": "jadelee7905@outlook.com",
+                        "status": "success",
+                        "verification_code": "123456",
+                    },
+                }
+            )
+        ]
+    )
+    monkeypatch.setattr("requests.Session", lambda: fake_session)
+
+    result = LuckMailClientCodeService().get_code({"ticket": "tok_894d7778268489752c2c077e7ac6a603"})
+
+    assert result == {
+        "ok": True,
+        "status": "success",
+        "message": "验证码已获取",
+        "email": "jadelee7905@outlook.com",
+        "code": "123456",
+    }
+    assert fake_session.calls[0]["url"] == (
+        "https://mails.example.test/api/v1/openapi/order/"
+        "tok_894d7778268489752c2c077e7ac6a603/code"
+    )
+
+
 def test_luckmail_client_code_rejects_invalid_ticket_format():
     from application.luckmail_client import LuckMailClientCodeService
 
