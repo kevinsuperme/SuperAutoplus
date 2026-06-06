@@ -55,6 +55,7 @@ from api.health import router as health_router
 from api.lifecycle import router as lifecycle_router
 from api.platform_capabilities import router as platform_capabilities_router
 from api.platforms import router as platforms_router
+from api.pix_gpt_plus import router as pix_gpt_plus_router
 from api.provider_definitions import router as provider_definitions_router
 from api.provider_settings import router as provider_settings_router
 from api.proxies import router as proxies_router
@@ -117,6 +118,7 @@ app.include_router(health_router, prefix="/api")
 app.include_router(lifecycle_router, prefix="/api")
 app.include_router(platforms_router, prefix="/api")
 app.include_router(platform_capabilities_router, prefix="/api")
+app.include_router(pix_gpt_plus_router, prefix="/api")
 app.include_router(provider_definitions_router, prefix="/api")
 app.include_router(provider_settings_router, prefix="/api")
 app.include_router(proxies_router, prefix="/api")

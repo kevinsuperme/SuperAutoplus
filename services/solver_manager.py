@@ -9,6 +9,8 @@ import requests
 
 SOLVER_PORT = 8889
 SOLVER_URL = f"http://localhost:{SOLVER_PORT}"
+DEFAULT_BROWSER_TYPE = "camoufox"
+SUPPORTED_BROWSER_TYPES = {"chromium", "chrome", "msedge", "camoufox"}
 _proc: subprocess.Popen = None
 _lock = threading.Lock()
 
@@ -16,6 +18,14 @@ _lock = threading.Lock()
 _consecutive_failures = 0
 _MAX_CONSECUTIVE_FAILURES = 3
 _last_failure_reason = ""
+
+
+def _get_browser_type() -> str:
+    browser_type = os.environ.get("SOLVER_BROWSER_TYPE", DEFAULT_BROWSER_TYPE).strip().lower()
+    if browser_type in SUPPORTED_BROWSER_TYPES:
+        return browser_type
+    print(f"[Solver] 不支持的 SOLVER_BROWSER_TYPE={browser_type!r}，回退到 {DEFAULT_BROWSER_TYPE}")
+    return DEFAULT_BROWSER_TYPE
 
 
 def is_running() -> bool:
@@ -29,7 +39,7 @@ def is_running() -> bool:
 def get_status() -> dict:
     """返回 solver 详细状态，供 API 使用。"""
     running = is_running()
-    info: dict = {"running": running}
+    info: dict = {"running": running, "browser_type": _get_browser_type()}
     if not running and _last_failure_reason:
         info["last_error"] = _last_failure_reason
     if not running and _consecutive_failures >= _MAX_CONSECUTIVE_FAILURES:
@@ -84,8 +94,10 @@ def start():
             print(f"[Solver] 连续 {_consecutive_failures} 次启动失败，停止重试。请手动排查后重启。")
             return
 
-        # 启动 Solver 子进程之前先确保 Camoufox 浏览器二进制可用
-        if not _ensure_camoufox_browser():
+        browser_type = _get_browser_type()
+
+        # 启动 Camoufox Solver 子进程之前先确保浏览器二进制可用。
+        if browser_type == "camoufox" and not _ensure_camoufox_browser():
             _consecutive_failures += 1
             _last_failure_reason = "Camoufox 浏览器不可用"
             print("[Solver] 由于 Camoufox 浏览器不可用，跳过 Solver 启动")
@@ -95,7 +107,7 @@ def start():
         # 用 --solver 参数让它走 solver 入口；源码模式下走 python + start.py
         if getattr(sys, "frozen", False):
             cmd = [sys.executable, "--solver",
-                   "--browser_type", "camoufox",
+                   "--browser_type", browser_type,
                    "--thread", "1",
                    "--port", str(SOLVER_PORT)]
         else:
@@ -103,7 +115,7 @@ def start():
                 os.path.dirname(__file__), "turnstile_solver", "start.py"
             )
             cmd = [sys.executable, solver_script,
-                   "--browser_type", "camoufox",
+                   "--browser_type", browser_type,
                    "--thread", "1",
                    "--port", str(SOLVER_PORT)]
         _proc = subprocess.Popen(

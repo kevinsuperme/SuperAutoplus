@@ -16,7 +16,7 @@ import os
 from fastapi import Request, Response
 from starlette.middleware.base import BaseHTTPMiddleware
 
-_PUBLIC_PREFIXES = ("/api/health", "/api/ready", "/api/auth/")
+_PUBLIC_PREFIXES = ("/api/health", "/api/ready", "/api/auth/", "/api/sms/pingme/callback")
 
 
 def _get_password() -> str:

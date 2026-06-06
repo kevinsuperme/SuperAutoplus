@@ -1,9 +1,12 @@
 from __future__ import annotations
 
+import os
+
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
 from core.base_sms import HERO_SMS_DEFAULT_COUNTRY, HERO_SMS_DEFAULT_SERVICE, HeroSmsProvider, SmsBowerProvider
+from core.pingme_sms import extract_pingme_code, record_pingme_message
 from infrastructure.provider_settings_repository import ProviderSettingsRepository
 
 router = APIRouter(prefix="/sms", tags=["sms"])
@@ -212,3 +215,38 @@ def smsbower_prices(body: HeroSmsQueryRequest | None = None):
         return {"prices": provider.get_prices(service=service, country=country)}
     except Exception as exc:
         raise HTTPException(502, str(exc))
+
+
+# ── PingMe callback ─────────────────────────────────────────────────────────
+
+def _saved_pingme_config() -> dict:
+    return ProviderSettingsRepository().resolve_runtime_settings("sms", "pingme_api", {})
+
+
+def _pingme_callback_token() -> str:
+    env_token = os.environ.get("PINGME_CALLBACK_TOKEN", "").strip()
+    if env_token:
+        return env_token
+    try:
+        config = _saved_pingme_config()
+    except Exception:
+        return ""
+    return str(config.get("pingme_callback_token") or "").strip()
+
+
+@router.post("/pingme/callback")
+def pingme_callback(body: dict, token: str = ""):
+    expected = _pingme_callback_token()
+    if expected and str(token or "").strip() != expected:
+        raise HTTPException(403, "PingMe callback token 不正确")
+
+    try:
+        stored = record_pingme_message(body or {})
+    except ValueError as exc:
+        raise HTTPException(400, str(exc))
+
+    return {
+        "ok": True,
+        "code": extract_pingme_code(stored.get("text", "")),
+        "message": stored,
+    }

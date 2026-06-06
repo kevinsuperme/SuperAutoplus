@@ -124,6 +124,8 @@ def build_phone_callbacks(ctx: RegistrationContext, *, service: str | None = Non
         or merged.get("herosms_default_country")
         or merged.get("smsbower_country")
         or merged.get("smsbower_default_country")
+        or merged.get("pingme_country")
+        or merged.get("pingme_default_country")
         or ""
     ).strip()
     sms_service = str(
@@ -132,6 +134,8 @@ def build_phone_callbacks(ctx: RegistrationContext, *, service: str | None = Non
         or merged.get("herosms_default_service")
         or merged.get("smsbower_service")
         or merged.get("smsbower_default_service")
+        or merged.get("pingme_app")
+        or merged.get("pingme_default_app")
         or merged.get("sms_activate_service")
         or merged.get("sms_activate_default_service")
         or service

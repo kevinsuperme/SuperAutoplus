@@ -105,6 +105,9 @@ def _test_mailbox(driver_type: str, extra: dict, definition) -> dict:
                 "email": email,
             }
 
+        if hasattr(mailbox, "test_connection"):
+            return mailbox.test_connection()
+
         account = mailbox.get_email()
         return {
             "ok": True,

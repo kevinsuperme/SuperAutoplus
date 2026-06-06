@@ -515,6 +515,7 @@ _LEGACY_PROVIDER_KEY_MAP: dict[tuple[str, str], str] = {
     # sms
     ("sms", "sms_activate"): "sms_activate_api",
     ("sms", "herosms"): "herosms_api",
+    ("sms", "pingme"): "pingme_api",
     # captcha
     ("captcha", "yescaptcha"): "yescaptcha_api",
     ("captcha", "twocaptcha"): "twocaptcha_api",

@@ -173,7 +173,7 @@ export default function Register() {
       const next = { ...current }
       let changed = false
       fields.forEach(field => {
-        const nextValue = values[field.key] ?? current[field.key] ?? ''
+        const nextValue = values[field.key] || current[field.key] || field.default_value || ''
         if ((next[field.key] ?? '') !== nextValue) {
           next[field.key] = nextValue
           changed = true
@@ -199,7 +199,7 @@ export default function Register() {
       const next = { ...current }
       let changed = false
       fields.forEach(field => {
-        const nextValue = values[field.key] ?? current[field.key] ?? ''
+        const nextValue = values[field.key] || current[field.key] || field.default_value || ''
         if ((next[field.key] ?? '') !== nextValue) {
           next[field.key] = nextValue
           changed = true

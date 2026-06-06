@@ -210,11 +210,16 @@ class TurnstileAPIServer:
             
             browser = None
             if self.browser_type in ['chromium', 'chrome', 'msedge'] and playwright:
-                browser = await playwright.chromium.launch(
-                    channel=self.browser_type,
-                    headless=self.headless,
-                    args=browser_args
-                )
+                launch_options = {
+                    "headless": self.headless,
+                    "args": browser_args,
+                }
+                executable_path = os.environ.get("CHROMIUM_EXECUTABLE_PATH", "").strip()
+                if self.browser_type == "chromium" and executable_path:
+                    launch_options["executable_path"] = executable_path
+                else:
+                    launch_options["channel"] = self.browser_type
+                browser = await playwright.chromium.launch(**launch_options)
             elif self.browser_type == "camoufox" and camoufox:
                 browser = await camoufox.start()
 

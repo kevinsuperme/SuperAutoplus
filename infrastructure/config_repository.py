@@ -12,6 +12,8 @@ class ConfigRepository:
         "cpa_api_url", "cpa_api_key",
         "team_manager_url", "team_manager_key",
         "any2api_url", "any2api_password",
+        "nerver_api_base_url", "nerver_api_timeout",
+        "nerver_pix_short_token", "nerver_pix_business_token",
     }
 
     def __init__(self, definitions: ProviderDefinitionsRepository | None = None):

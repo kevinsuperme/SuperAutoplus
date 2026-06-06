@@ -257,6 +257,23 @@ def _create_outlook_email(extra: dict, proxy: str | None) -> 'BaseMailbox':
     )
 
 
+def _create_luckmail(extra: dict, proxy: str | None) -> 'BaseMailbox':
+    from core.luckmail_mailbox import LuckMailMailbox
+
+    return LuckMailMailbox(
+        base_url=extra.get("luckmail_base_url", ""),
+        api_key=extra.get("luckmail_api_key", ""),
+        project_code=extra.get("luckmail_project_code", ""),
+        email_type=extra.get("luckmail_email_type", ""),
+        domain=extra.get("luckmail_domain", ""),
+        specified_email=extra.get("luckmail_specified_email", ""),
+        variant_mode=extra.get("luckmail_variant_mode", ""),
+        poll_interval=extra.get("luckmail_interval_s", ""),
+        request_timeout=extra.get("luckmail_request_timeout_s", ""),
+        proxy=proxy,
+    )
+
+
 def _create_local_ms_pool(extra: dict, proxy: str | None) -> 'BaseMailbox':
     from core.local_ms_mailbox import LocalMicrosoftMailboxPool
 
@@ -299,6 +316,7 @@ MAILBOX_FACTORY_REGISTRY = {
     "cfworker_admin_api": _create_cfworker,
     "testmail_api": _create_testmail,
     "outlook_email_api": _create_outlook_email,
+    "luckmail_api": _create_luckmail,
     "local_ms_pool": _create_local_ms_pool,
     "laoudo_api": _create_laoudo,
     # backward-compat fallback
@@ -311,6 +329,7 @@ MAILBOX_FACTORY_REGISTRY = {
     "cfworker": _create_cfworker,
     "testmail": _create_testmail,
     "outlook_email": _create_outlook_email,
+    "luckmail": _create_luckmail,
     "local_ms": _create_local_ms_pool,
     "laoudo": _create_laoudo,
 }

@@ -20,6 +20,7 @@ import SettingsPage from "@/pages/SettingsPage";
 import TaskHistory from "@/pages/TaskHistory";
 import CtfGptPlus from "@/pages/CtfGptPlus";
 import GoPayGptPlus from "@/pages/GoPayGptPlus";
+import PixGptPlus from "@/pages/PixGptPlus";
 import PlusManager from "@/pages/PlusManager";
 import UpdateBanner from "@/components/UpdateBanner";
 import {
@@ -32,6 +33,7 @@ import {
   Moon,
   PanelLeft,
   PanelLeftClose,
+  QrCode,
   Settings as SettingsIcon,
   Sparkles,
   Sun,
@@ -49,6 +51,7 @@ const NAV_ITEMS: NavItem[] = [
   { path: "/", labelKey: "nav.dashboard", icon: LayoutDashboard, exact: true },
   { path: "/ctf-gpt-plus", labelKey: "nav.ctfGptPlus", icon: Sparkles },
   { path: "/gopay-gpt-plus", labelKey: "nav.gopayGptPlus", icon: Sparkles },
+  { path: "/pix-gpt-plus", labelKey: "nav.pixGptPlus", icon: QrCode },
   { path: "/plus-manager", labelKey: "nav.plusManager", icon: Sparkles },
   { path: "/history", labelKey: "nav.tasks", icon: History },
 ];
@@ -363,6 +366,7 @@ function Shell({
             <Route path="/register" element={<Register />} />
             <Route path="/ctf-gpt-plus" element={<CtfGptPlus />} />
             <Route path="/gopay-gpt-plus" element={<GoPayGptPlus />} />
+            <Route path="/pix-gpt-plus" element={<PixGptPlus />} />
             <Route path="/plus-manager" element={<PlusManager />} />
             <Route path="/history" element={<TaskHistory />} />
             <Route path="/proxies" element={<Proxies />} />

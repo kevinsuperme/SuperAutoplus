@@ -1040,6 +1040,159 @@ class SmsBowerProvider(HeroSmsProvider):
         return resp
 
 
+class PingMeProvider(BaseSmsProvider):
+    """PingMe verification-code-helper provider.
+
+    PingMe delivers SMS content by POST callback, so get_code waits for the
+    local callback message store instead of polling PingMe.
+    """
+
+    BASE_URL = "https://api.pingmeapp.net"
+
+    def __init__(
+        self,
+        app_key: str,
+        user_id: str,
+        *,
+        default_app: str = "",
+        default_country: str = "US",
+        base_url: str = BASE_URL,
+        existing_number: str = "",
+        code_pattern: str = "",
+        proxy: str | None = None,
+    ):
+        self.app_key = str(app_key or "").strip()
+        self.user_id = str(user_id or "").strip()
+        self.default_app = str(default_app or "").strip()
+        self.default_country = str(default_country or "US").strip().upper() or "US"
+        self.base_url = str(base_url or self.BASE_URL).strip().rstrip("/")
+        self.existing_number = str(existing_number or "").strip()
+        self.code_pattern = str(code_pattern or "").strip()
+        self.proxy = str(proxy or "").strip()
+        self.proxies = {"http": self.proxy, "https": self.proxy} if self.proxy else None
+        self._activations: dict[str, dict] = {}
+
+    @staticmethod
+    def _normalize_country(country: str) -> str:
+        value = str(country or "").strip().upper()
+        return value if value in {"US", "GB"} else "US"
+
+    @staticmethod
+    def _activation_id(app: str, number: str) -> str:
+        from core.pingme_sms import normalize_pingme_phone
+
+        phone = normalize_pingme_phone(number)
+        return f"pingme:{app}:{phone.lstrip('+')}"
+
+    def _headers(self) -> dict:
+        return {
+            "Accept": "application/json",
+            "Content-Type": "application/json",
+            "x-app-key": self.app_key,
+        }
+
+    def _post(self, path: str, payload: dict, *, timeout: int = 20) -> dict:
+        resp = requests.post(
+            f"{self.base_url}{path}",
+            json=payload,
+            headers=self._headers(),
+            timeout=timeout,
+            proxies=self.proxies,
+        )
+        resp.raise_for_status()
+        data = resp.json()
+        if not isinstance(data, dict):
+            raise RuntimeError("PingMe 返回格式不是 JSON object")
+        retcode = data.get("retcode")
+        if retcode in (0, "0"):
+            return data
+        message = str(data.get("retmsg") or "").strip()
+        if str(retcode) == "300002":
+            message = message or "余额不足"
+        elif str(retcode) == "500000":
+            message = message or "没有可用号码"
+        elif str(retcode) == "500001":
+            message = message or "锁定太多号码"
+        elif str(retcode) == "500002":
+            message = message or "号码不存在或者已过期"
+        raise RuntimeError(f"PingMe API 失败 retcode={retcode}: {message or data}")
+
+    def get_app_list(self) -> list:
+        data = self._post("/thirdparty/getAppList", {"userId": self.user_id})
+        result = data.get("result") or {}
+        if isinstance(result, dict):
+            apps = result.get("apps") or result.get("appList") or result.get("data") or []
+            return apps if isinstance(apps, list) else []
+        return result if isinstance(result, list) else []
+
+    def get_number(self, *, service: str, country: str = "") -> SmsActivation:
+        if not self.app_key:
+            raise RuntimeError("PingMe 未配置 x-app-key")
+        if not self.user_id:
+            raise RuntimeError("PingMe 未配置 userId")
+        app = str(self.default_app or service or "").strip()
+        if not app:
+            raise RuntimeError("PingMe 未配置 app")
+        country_code = self._normalize_country(country or self.default_country)
+        number = self.existing_number
+        data = self._post(
+            "/thirdparty/lockNumber",
+            {
+                "userId": self.user_id,
+                "app": app,
+                "number": number,
+                "countryCode": country_code,
+            },
+        )
+        result = data.get("result") or {}
+        locked_number = str(result.get("number") or "").strip()
+        if not locked_number:
+            raise RuntimeError("PingMe 返回的号码为空")
+
+        from core.pingme_sms import normalize_pingme_phone
+
+        phone = normalize_pingme_phone(locked_number)
+        activation_id = self._activation_id(app, phone)
+        acquired_at = time.time()
+        self._activations[activation_id] = {
+            "app": app,
+            "number": phone,
+            "country": country_code,
+            "acquired_at": acquired_at,
+            "price": result.get("price"),
+        }
+        return SmsActivation(
+            activation_id=activation_id,
+            phone_number=phone,
+            country=country_code,
+            metadata={"app": app, "price": result.get("price"), "acquired_at": acquired_at},
+        )
+
+    def get_code(self, activation_id: str, *, timeout: int = 120) -> str:
+        activation = self._activations.get(str(activation_id or ""))
+        if not activation:
+            parts = str(activation_id or "").split(":", 2)
+            if len(parts) == 3 and parts[0] == "pingme":
+                activation = {"app": parts[1], "number": f"+{parts[2]}", "acquired_at": 0}
+            else:
+                raise RuntimeError(f"PingMe activation 不存在: {activation_id}")
+
+        from core.pingme_sms import wait_for_pingme_code
+
+        return wait_for_pingme_code(
+            user_id=self.user_id,
+            app=str(activation.get("app") or ""),
+            number=str(activation.get("number") or ""),
+            after=float(activation.get("acquired_at") or 0),
+            timeout=timeout,
+            pattern=self.code_pattern or None,
+        )
+
+    def cancel(self, activation_id: str) -> bool:
+        self._activations.pop(str(activation_id or ""), None)
+        return True
+
+
 def is_herosms_phone_cache_alive(config: dict | None = None) -> tuple[bool, dict]:
     """Return whether the current HeroSMS cache is reusable for scheduling."""
     config = dict(config or {})
@@ -1096,6 +1249,23 @@ def create_sms_provider(provider_key: str, config: dict) -> BaseSmsProvider:
             proxy=str(config.get("sms_proxy") or config.get("proxy") or "") or None,
             reuse_phone_to_max=_safe_bool(config.get("register_reuse_phone_to_max"), True),
             phone_success_max=max(0, _safe_int(config.get("register_phone_extra_max") or config.get("register_phone_success_max"), 3)),
+        )
+    if provider_key in ("pingme", "pingme_api"):
+        app_key = str(config.get("pingme_app_key", "") or "").strip()
+        user_id = str(config.get("pingme_user_id", "") or "").strip()
+        if not app_key:
+            raise RuntimeError("PingMe 未配置 x-app-key")
+        if not user_id:
+            raise RuntimeError("PingMe 未配置 userId")
+        return PingMeProvider(
+            app_key=app_key,
+            user_id=user_id,
+            default_app=str(config.get("sms_service") or config.get("pingme_app") or config.get("pingme_default_app") or ""),
+            default_country=str(config.get("sms_country") or config.get("pingme_country") or config.get("pingme_default_country") or "US"),
+            base_url=str(config.get("pingme_base_url") or PingMeProvider.BASE_URL),
+            existing_number=str(config.get("pingme_existing_number") or ""),
+            code_pattern=str(config.get("pingme_code_pattern") or ""),
+            proxy=str(config.get("sms_proxy") or config.get("proxy") or "") or None,
         )
     raise RuntimeError(f"未知的接码服务: {provider_key}")
 
