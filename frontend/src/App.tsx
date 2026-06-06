@@ -9,6 +9,7 @@ import {
 import { useEffect, useState } from "react";
 import { getPlatforms } from "@/lib/app-data";
 import { getAuthToken, setAuthToken, API, cn } from "@/lib/utils";
+import { getPublicClientRoute } from "@/lib/public-routes";
 import { I18nProvider, useI18n } from "@/lib/i18n-context";
 import type { TranslationKey } from "@/lib/i18n";
 import Dashboard from "@/pages/Dashboard";
@@ -498,7 +499,9 @@ function AppContent() {
       c === "dark" ? "light" : c === "light" ? "system" : "dark",
     );
 
-  if (window.location.pathname === "/pxl-plus") {
+  const publicRoute = getPublicClientRoute(window.location.pathname);
+
+  if (publicRoute === "/pxl-plus") {
     return (
       <BrowserRouter>
         <PxlPlusClient />
@@ -506,7 +509,7 @@ function AppContent() {
     );
   }
 
-  if (window.location.pathname === "/luckmail-code") {
+  if (publicRoute === "/luckmail-code") {
     return (
       <BrowserRouter>
         <LuckMailCodeClient />

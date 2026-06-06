@@ -139,7 +139,10 @@ if os.path.isdir(_static_dir):
 
     @app.get("/{full_path:path}", include_in_schema=False)
     def spa_fallback(full_path: str):
-        return FileResponse(os.path.join(_static_dir, "index.html"))
+        return FileResponse(
+            os.path.join(_static_dir, "index.html"),
+            headers={"Cache-Control": "no-store, max-age=0"},
+        )
 
 
 if __name__ == "__main__":
