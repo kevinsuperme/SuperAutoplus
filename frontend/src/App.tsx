@@ -22,6 +22,7 @@ import CtfGptPlus from "@/pages/CtfGptPlus";
 import GoPayGptPlus from "@/pages/GoPayGptPlus";
 import PixGptPlus from "@/pages/PixGptPlus";
 import PlusManager from "@/pages/PlusManager";
+import PxlPlusClient from "@/pages/PxlPlusClient";
 import UpdateBanner from "@/components/UpdateBanner";
 import {
   ChevronRight,
@@ -495,6 +496,14 @@ function AppContent() {
     setTheme((c) =>
       c === "dark" ? "light" : c === "light" ? "system" : "dark",
     );
+
+  if (window.location.pathname === "/pxl-plus") {
+    return (
+      <BrowserRouter>
+        <PxlPlusClient />
+      </BrowserRouter>
+    );
+  }
 
   if (authState === "loading") {
     return (
