@@ -94,10 +94,12 @@ class LuckMailMailbox(BaseMailbox):
         )
 
     def _assert_ready(self) -> None:
-        if not self.api_key:
-            raise RuntimeError("LuckMail 未配置 API Key")
         if not self.project_code:
             raise RuntimeError("LuckMail 未配置项目代码")
+
+    def _assert_api_key(self) -> None:
+        if not self.api_key:
+            raise RuntimeError("LuckMail 未配置 API Key")
 
     def _get_session(self) -> requests.Session:
         if self._session is None:
@@ -170,6 +172,7 @@ class LuckMailMailbox(BaseMailbox):
         return body
 
     def test_connection(self) -> dict[str, Any]:
+        self._assert_api_key()
         payload = self._get_json("/api/v1/openapi/user/info")
         balance = _text(payload.get("balance"))
         username = _text(payload.get("username") or payload.get("email"))
@@ -228,6 +231,7 @@ class LuckMailMailbox(BaseMailbox):
         )
 
     def get_email(self) -> MailboxAccount:
+        self._assert_api_key()
         order = self._post_json("/api/v1/openapi/order/create", self._create_order_body())
         return self._build_account(order)
 
@@ -287,6 +291,16 @@ class LuckMailMailbox(BaseMailbox):
         status = _text(payload.get("status")).lower()
         if status in {"timeout", "cancelled", "canceled", "failed", "fail"}:
             raise RuntimeError(f"LuckMail 订单状态异常: {status or 'unknown'}")
+        return payload
+
+    def get_email_token_code_payload_now(self, token: str) -> dict[str, Any]:
+        token = _text(token)
+        if not token:
+            raise RuntimeError("LuckMail 已购邮箱缺少 token，无法查询验证码")
+        payload = self._get_json(f"/api/v1/openapi/email/token/{quote(token, safe='')}/code")
+        alive = payload.get("alive")
+        if alive is False:
+            raise RuntimeError(f"LuckMail 邮箱状态异常: {_text(payload.get('message')) or 'alive=false'}")
         return payload
 
     def wait_for_code(

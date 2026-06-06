@@ -68,7 +68,7 @@ export default function LuckMailCodeClient() {
   const [result, setResult] = useState<CodeResponse | null>(null);
   const [banner, setBanner] = useState<{ tone: BannerTone; message: string }>({
     tone: "neutral",
-    message: "粘贴邮箱 Token 文本后即可查询验证码。",
+    message: "粘贴 邮箱----token 或单独 token 后即可查询验证码。",
   });
   const [activeStep, setActiveStep] = useState<StepKey | null>(null);
 
@@ -156,7 +156,7 @@ export default function LuckMailCodeClient() {
                   LuckMail 验证码查询
                 </h1>
                 <p className="mt-1 text-sm text-[var(--text-muted)]">
-                  粘贴邮箱 Token 文本后获取验证码。
+                  粘贴 邮箱----token 或单独 token 后获取验证码。
                 </p>
               </div>
             </div>
@@ -191,7 +191,7 @@ export default function LuckMailCodeClient() {
                   htmlFor="luckmail-ticket"
                   className="mb-1.5 block text-sm font-medium text-[var(--text-secondary)]"
                 >
-                  邮箱 Token 文本
+                  邮箱 Token 文本或单独 Token
                 </label>
                 <textarea
                   id="luckmail-ticket"

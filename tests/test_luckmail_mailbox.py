@@ -286,3 +286,35 @@ def test_luckmail_get_code_payload_now_returns_remote_email(monkeypatch):
 
     assert payload["email_address"] == "user@example.com"
     assert payload["verification_code"] == "654321"
+
+
+def test_luckmail_get_email_token_code_payload_now_uses_purchase_token_endpoint(monkeypatch):
+    session = FakeSession(
+        [
+            FakeResponse(
+                {
+                    "code": 0,
+                    "data": {
+                        "email_address": "user@example.com",
+                        "project": "ChatGPT",
+                        "has_new_mail": True,
+                        "verification_code": "654321",
+                    },
+                }
+            ),
+        ]
+    )
+    monkeypatch.setattr("requests.Session", lambda: session)
+
+    mailbox = LuckMailMailbox(
+        base_url="https://mails.example.test",
+        api_key="fake-api-key",
+        project_code="openai",
+        email_type="ms_graph",
+    )
+
+    payload = mailbox.get_email_token_code_payload_now("tok_abc123")
+
+    assert payload["email_address"] == "user@example.com"
+    assert payload["verification_code"] == "654321"
+    assert session.calls[0]["url"] == "https://mails.example.test/api/v1/openapi/email/token/tok_abc123/code"

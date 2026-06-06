@@ -4,7 +4,6 @@ import re
 from dataclasses import dataclass
 from typing import Any
 
-from core.base_mailbox import MailboxAccount
 from core.luckmail_mailbox import LuckMailMailbox
 from infrastructure.provider_settings_repository import ProviderSettingsRepository
 
@@ -80,6 +79,11 @@ def _payload_email(payload: dict[str, Any]) -> str:
     return _text(payload.get("email_address") or payload.get("email") or payload.get("address"))
 
 
+def _payload_has_new_mail(payload: dict[str, Any]) -> bool:
+    value = payload.get("has_new_mail")
+    return value is not False
+
+
 class LuckMailClientCodeService:
     def __init__(self, repository: ProviderSettingsRepository | None = None):
         self.repository = repository or ProviderSettingsRepository()
@@ -91,24 +95,12 @@ class LuckMailClientCodeService:
         assert ticket is not None
 
         settings = self.repository.resolve_runtime_settings("mailbox", "luckmail_api", {})
-        if not _text(settings.get("luckmail_api_key")):
-            return _client_response(
-                ok=False,
-                status="luckmail_not_configured",
-                message="服务端未配置 LuckMail API Key",
-                email=ticket.email,
-            )
 
         try:
             mailbox = LuckMailMailbox.from_config(settings)
-            account = MailboxAccount(email=ticket.email, account_id=ticket.token)
-            if ticket.token_only:
-                code_payload = mailbox.get_code_payload_now(ticket.token)
-                email = _payload_email(code_payload)
-                code = mailbox._extract_code(code_payload)
-            else:
-                email = ticket.email
-                code = mailbox.get_code_now(account)
+            code_payload = mailbox.get_email_token_code_payload_now(ticket.token)
+            email = ticket.email or _payload_email(code_payload)
+            code = mailbox._extract_code(code_payload)
         except Exception:  # noqa: BLE001 - keep public client response sanitized
             return _client_response(
                 ok=False,
@@ -117,7 +109,7 @@ class LuckMailClientCodeService:
                 email=ticket.email,
             )
 
-        if not code:
+        if not code or not _payload_has_new_mail(code_payload):
             return _client_response(
                 ok=False,
                 status="code_not_ready",

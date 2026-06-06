@@ -86,7 +86,7 @@ def test_luckmail_client_code_success_uses_configured_api_key(monkeypatch):
         "code": "123456",
     }
     assert fake_session.calls[0]["url"] == (
-        "https://mails.example.test/api/v1/openapi/order/"
+        "https://mails.example.test/api/v1/openapi/email/token/"
         "tok_894d7778268489752c2c077e7ac6a603/code"
     )
     assert fake_session.calls[0]["headers"]["X-API-Key"] == "fake-api-key"
@@ -123,7 +123,7 @@ def test_luckmail_client_code_success_accepts_token_only_and_uses_remote_email(m
         "code": "123456",
     }
     assert fake_session.calls[0]["url"] == (
-        "https://mails.example.test/api/v1/openapi/order/"
+        "https://mails.example.test/api/v1/openapi/email/token/"
         "tok_894d7778268489752c2c077e7ac6a603/code"
     )
 
@@ -165,16 +165,68 @@ def test_luckmail_client_code_rejects_empty_token():
     }
 
 
-def test_luckmail_client_code_reports_missing_configuration():
+def test_luckmail_client_code_uses_default_luckmail_base_without_api_key(monkeypatch):
     from application.luckmail_client import LuckMailClientCodeService
+
+    monkeypatch.setattr(
+        "requests.Session",
+        lambda: FakeSession(
+            [
+                FakeResponse(
+                    {
+                        "code": 0,
+                        "data": {
+                            "email_address": "user@example.com",
+                            "has_new_mail": True,
+                            "verification_code": "123456",
+                        },
+                    }
+                )
+            ]
+        ),
+    )
 
     result = LuckMailClientCodeService().get_code({"ticket": "user@example.com----tok_abc"})
 
     assert result == {
-        "ok": False,
-        "status": "luckmail_not_configured",
-        "message": "服务端未配置 LuckMail API Key",
+        "ok": True,
+        "status": "success",
+        "message": "验证码已获取",
         "email": "user@example.com",
+        "code": "123456",
+    }
+
+
+def test_luckmail_client_code_token_lookup_does_not_require_api_key(monkeypatch):
+    from application.luckmail_client import LuckMailClientCodeService
+
+    _seed_luckmail_setting(api_key="")
+    monkeypatch.setattr(
+        "requests.Session",
+        lambda: FakeSession(
+            [
+                FakeResponse(
+                    {
+                        "code": 0,
+                        "data": {
+                            "email_address": "user@example.com",
+                            "has_new_mail": True,
+                            "verification_code": "123456",
+                        },
+                    }
+                )
+            ]
+        ),
+    )
+
+    result = LuckMailClientCodeService().get_code({"ticket": "tok_abc"})
+
+    assert result == {
+        "ok": True,
+        "status": "success",
+        "message": "验证码已获取",
+        "email": "user@example.com",
+        "code": "123456",
     }
 
 
