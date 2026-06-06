@@ -212,3 +212,46 @@ def test_provider_settings_luckmail_test_uses_connection_check_without_order(mon
     assert "API Key 有效" in result["message"]
     assert [call["method"] for call in session.calls] == ["GET"]
     assert session.calls[0]["url"] == "https://mails.example.test/api/v1/openapi/user/info"
+
+
+def test_luckmail_get_code_now_queries_single_order_without_waiting(monkeypatch):
+    session = FakeSession(
+        [
+            FakeResponse(
+                {
+                    "code": 0,
+                    "data": {
+                        "order_no": "tok_abc123",
+                        "status": "success",
+                        "verification_code": "654321",
+                        "mail_subject": "OpenAI verification code",
+                    },
+                }
+            ),
+        ]
+    )
+    monkeypatch.setattr("requests.Session", lambda: session)
+
+    mailbox = LuckMailMailbox(
+        base_url="https://mails.example.test",
+        api_key="fake-api-key",
+        project_code="openai",
+        email_type="ms_graph",
+    )
+
+    code = mailbox.get_code_now(mailbox._build_account({"order_no": "tok_abc123", "email_address": "user@example.com"}))
+
+    assert code == "654321"
+    assert session.calls == [
+        {
+            "method": "GET",
+            "url": "https://mails.example.test/api/v1/openapi/order/tok_abc123/code",
+            "kwargs": {"timeout": 30},
+            "headers": {
+                "X-API-Key": "fake-api-key",
+                "user-agent": "SuperAutoplus/LuckMail-mailbox",
+                "accept": "application/json",
+                "content-type": "application/json",
+            },
+        }
+    ]

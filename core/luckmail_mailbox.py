@@ -270,6 +270,21 @@ class LuckMailMailbox(BaseMailbox):
             return match.group(1) if match.groups() else match.group(0)
         return ""
 
+    def get_code_now(
+        self,
+        account: MailboxAccount,
+        code_pattern: str | None = None,
+    ) -> str:
+        order_no = _text(account.account_id)
+        if not order_no:
+            raise RuntimeError("LuckMail 账号缺少 order_no，无法查询验证码")
+
+        payload = self._get_json(f"/api/v1/openapi/order/{quote(order_no, safe='')}/code")
+        status = _text(payload.get("status")).lower()
+        if status in {"timeout", "cancelled", "canceled", "failed", "fail"}:
+            raise RuntimeError(f"LuckMail 订单状态异常: {status or 'unknown'}")
+        return self._extract_code(payload, code_pattern)
+
     def wait_for_code(
         self,
         account: MailboxAccount,
