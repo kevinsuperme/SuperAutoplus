@@ -19,6 +19,10 @@ def _seed_chatgpt_account(*, email: str = "pix@example.com", token: str = "ac_to
         return int(model.id or 0)
 
 
+def _without_stored_pix_client_codes(monkeypatch):
+    monkeypatch.setattr("application.pix_gpt_plus.config_store.get", lambda key, default="": "")
+
+
 def test_generate_pix_calls_nerver_with_stored_access_token(monkeypatch):
     account_id = _seed_chatgpt_account(email="alice@example.com", token="ac_alice")
     captured: dict[str, object] = {}
@@ -149,3 +153,208 @@ def test_pix_gpt_plus_generate_endpoint_uses_service(monkeypatch):
     assert response.status_code == 200
     assert response.json()["success_count"] == 1
     assert captured["payload"]["chatgpt_account_ids"] == [1]
+
+
+def test_client_open_with_access_token_calls_nerver(monkeypatch):
+    _without_stored_pix_client_codes(monkeypatch)
+    monkeypatch.setenv("PIX_CLIENT_CKD_CODES", "CKD-OK")
+    captured: dict[str, object] = {}
+
+    def fake_call(self, *, endpoint_path: str, body: dict) -> dict:  # noqa: ANN001
+        captured["endpoint_path"] = endpoint_path
+        captured["body"] = body
+        return {
+            "ok": True,
+            "reason": "ok",
+            "mode": "short_emv",
+            "pix_qr_data": "000201PIX",
+            "pix_qr_image_url": "https://files.example/pix.png",
+            "pix_hosted_url": "https://pay.example/pix",
+            "pix_expires_iso": "2026-06-06T12:00:00.000Z",
+            "request_id": "req_123",
+        }
+
+    monkeypatch.setattr(PixGptPlusService, "_call_remote_pix", fake_call)
+
+    result = PixGptPlusService().generate_for_client_token(
+        {"ckd": "CKD-OK", "credential": "ac_customer_token"}
+    )
+
+    assert result["ok"] is True
+    assert result["status"] == "success"
+    assert result["pix_qr_data"] == "000201PIX"
+    assert captured == {
+        "endpoint_path": "/api/v1/pix-short",
+        "body": {"token": "ac_customer_token", "promoId": "plus-1-month-free"},
+    }
+
+
+def test_client_open_with_session_json_extracts_access_token(monkeypatch):
+    _without_stored_pix_client_codes(monkeypatch)
+    monkeypatch.setenv("PIX_CLIENT_CKD_CODES", "CKD-JSON")
+    captured: dict[str, object] = {}
+
+    def fake_call(self, *, endpoint_path: str, body: dict) -> dict:  # noqa: ANN001
+        captured["body"] = body
+        return {
+            "ok": True,
+            "reason": "ok",
+            "mode": "short_emv",
+            "pix_qr_data": "000201JSON",
+        }
+
+    monkeypatch.setattr(PixGptPlusService, "_call_remote_pix", fake_call)
+
+    result = PixGptPlusService().generate_for_client_token(
+        {
+            "ckd": "CKD-JSON",
+            "credential": '{"session":{"accessToken":"ac_from_json"}}',
+        }
+    )
+
+    assert result["ok"] is True
+    assert result["status"] == "success"
+    assert captured["body"] == {
+        "token": "ac_from_json",
+        "promoId": "plus-1-month-free",
+    }
+
+
+def test_client_open_rejects_missing_ckd_configuration(monkeypatch):
+    monkeypatch.delenv("PIX_CLIENT_CKD_CODES", raising=False)
+    _without_stored_pix_client_codes(monkeypatch)
+
+    result = PixGptPlusService().generate_for_client_token(
+        {"ckd": "ANY", "credential": "ac_customer_token"}
+    )
+
+    assert result == {
+        "ok": False,
+        "status": "ckd_not_configured",
+        "message": "服务端未配置 CKD 授权码",
+    }
+
+
+def test_client_open_rejects_invalid_ckd(monkeypatch):
+    _without_stored_pix_client_codes(monkeypatch)
+    monkeypatch.setenv("PIX_CLIENT_CKD_CODES", "CKD-OK")
+
+    result = PixGptPlusService().generate_for_client_token(
+        {"ckd": "WRONG", "credential": "ac_customer_token"}
+    )
+
+    assert result == {
+        "ok": False,
+        "status": "invalid_ckd",
+        "message": "CKD 授权码无效",
+    }
+
+
+def test_client_open_rejects_missing_token(monkeypatch):
+    _without_stored_pix_client_codes(monkeypatch)
+    monkeypatch.setenv("PIX_CLIENT_CKD_CODES", "CKD-OK")
+
+    result = PixGptPlusService().generate_for_client_token(
+        {"ckd": "CKD-OK", "credential": '{"session":{}}'}
+    )
+
+    assert result == {
+        "ok": False,
+        "status": "missing_token",
+        "message": "未能从 Access Token / Session JSON 中提取 token",
+    }
+
+
+def test_client_open_wraps_remote_error(monkeypatch):
+    _without_stored_pix_client_codes(monkeypatch)
+    monkeypatch.setenv("PIX_CLIENT_CKD_CODES", "CKD-OK")
+
+    def fake_call(self, *, endpoint_path: str, body: dict) -> dict:  # noqa: ANN001
+        raise RuntimeError("remote timeout")
+
+    monkeypatch.setattr(PixGptPlusService, "_call_remote_pix", fake_call)
+
+    result = PixGptPlusService().generate_for_client_token(
+        {"ckd": "CKD-OK", "credential": "ac_customer_token"}
+    )
+
+    assert result["ok"] is False
+    assert result["status"] == "remote_error"
+    assert result["message"] == "Nerver PIX 接口调用失败，请稍后重试"
+    assert "remote timeout" not in result["message"]
+
+
+def test_client_open_uses_config_store_ckd_codes_with_multiple_separators(monkeypatch):
+    monkeypatch.delenv("PIX_CLIENT_CKD_CODES", raising=False)
+
+    def fake_config_get(key: str, default: str = "") -> str:
+        if key == "pix_client_ckd_codes":
+            return "CKD-ONE, CKD-TWO\nCKD-THREE\tCKD-FOUR"
+        return default
+
+    monkeypatch.setattr("application.pix_gpt_plus.config_store.get", fake_config_get)
+    captured: dict[str, object] = {}
+
+    def fake_call(self, *, endpoint_path: str, body: dict) -> dict:  # noqa: ANN001
+        captured["endpoint_path"] = endpoint_path
+        captured["body"] = body
+        return {
+            "ok": True,
+            "reason": "ok",
+            "mode": "short_emv",
+            "pix_qr_data": "000201CONFIG",
+        }
+
+    monkeypatch.setattr(PixGptPlusService, "_call_remote_pix", fake_call)
+
+    result = PixGptPlusService().generate_for_client_token(
+        {"ckd": "CKD-THREE", "credential": "ac_config_token"}
+    )
+
+    assert result["ok"] is True
+    assert result["status"] == "success"
+    assert result["pix_qr_data"] == "000201CONFIG"
+    assert captured == {
+        "endpoint_path": "/api/v1/pix-short",
+        "body": {"token": "ac_config_token", "promoId": "plus-1-month-free"},
+    }
+
+
+def test_pix_client_open_endpoint_is_public_with_ckd(monkeypatch):
+    from fastapi import FastAPI
+    from fastapi.testclient import TestClient
+
+    from api.pix_gpt_plus import router
+    from application.pix_gpt_plus import PixGptPlusService
+    from core.auth import AuthMiddleware
+
+    monkeypatch.setenv("APP_PASSWORD", "admin-password")
+    captured: dict[str, object] = {}
+
+    def fake_generate(self, payload: dict) -> dict:  # noqa: ANN001
+        captured["payload"] = payload
+        return {
+            "ok": True,
+            "status": "success",
+            "message": "PIX 已生成",
+            "pix_qr_data": "000201PUBLIC",
+        }
+
+    monkeypatch.setattr(PixGptPlusService, "generate_for_client_token", fake_generate)
+
+    app = FastAPI()
+    app.add_middleware(AuthMiddleware)
+    app.include_router(router, prefix="/api")
+    local_client = TestClient(app)
+
+    response = local_client.post(
+        "/api/pix-gpt-plus/client/open",
+        json={"ckd": "CKD-OK", "credential": "ac_customer_token"},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["status"] == "success"
+    assert captured["payload"] == {
+        "ckd": "CKD-OK",
+        "credential": "ac_customer_token",
+    }

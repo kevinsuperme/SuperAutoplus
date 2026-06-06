@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import json
 import os
+import re
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Any
 
@@ -19,6 +21,43 @@ PIX_ENDPOINTS = {
     "business": "/api/v1/pix-business",
     "long": "/api/v1/pix",
 }
+
+CLIENT_TOKEN_KEYS = ("access_token", "accessToken", "primary_token", "token")
+
+
+def _split_codes(value: str) -> set[str]:
+    return {item.strip() for item in re.split(r"[\s,]+", value or "") if item.strip()}
+
+
+def _client_response(
+    *,
+    ok: bool,
+    status: str,
+    message: str,
+    extra: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    result: dict[str, Any] = {"ok": ok, "status": status, "message": message}
+    if extra:
+        result.update(extra)
+    return result
+
+
+def _find_token_in_json(value: Any) -> str:
+    if isinstance(value, dict):
+        for key in CLIENT_TOKEN_KEYS:
+            token = _remote_text(value.get(key))
+            if token:
+                return token
+        for item in value.values():
+            token = _find_token_in_json(item)
+            if token:
+                return token
+    if isinstance(value, list):
+        for item in value:
+            token = _find_token_in_json(item)
+            if token:
+                return token
+    return ""
 
 
 def _as_int(value: Any, default: int) -> int:
@@ -146,6 +185,122 @@ class PixGptPlusService:
             "error_count": error_count,
             "results": results,
         }
+
+    def generate_for_client_token(self, payload: dict[str, Any]) -> dict[str, Any]:
+        ckd = str(payload.get("ckd") or "").strip()
+        credential = str(payload.get("credential") or "").strip()
+        if not ckd:
+            return _client_response(
+                ok=False,
+                status="invalid_ckd",
+                message="CKD 授权码无效",
+            )
+        if not credential:
+            return _client_response(
+                ok=False,
+                status="missing_credential",
+                message="请填写 Access Token / Session JSON",
+            )
+
+        allowed_codes = self._client_ckd_codes()
+        if not allowed_codes:
+            return _client_response(
+                ok=False,
+                status="ckd_not_configured",
+                message="服务端未配置 CKD 授权码",
+            )
+        if ckd not in allowed_codes:
+            return _client_response(
+                ok=False,
+                status="invalid_ckd",
+                message="CKD 授权码无效",
+            )
+
+        token = self._extract_client_token(credential)
+        if not token:
+            return _client_response(
+                ok=False,
+                status="missing_token",
+                message="未能从 Access Token / Session JSON 中提取 token",
+            )
+
+        mode = str(payload.get("api_mode") or "short").strip().lower()
+        endpoint_path = PIX_ENDPOINTS.get(mode)
+        if not endpoint_path:
+            return _client_response(
+                ok=False,
+                status="invalid_api_mode",
+                message=f"不支持的 PIX API 模式: {mode}",
+            )
+
+        promo_id = str(
+            payload.get("promo_id") or payload.get("promoId") or "plus-1-month-free"
+        ).strip()
+        try:
+            remote = self._call_remote_pix(
+                endpoint_path=endpoint_path,
+                body={"token": token, "promoId": promo_id},
+            )
+        except Exception:  # noqa: BLE001 - expose safe remote failure to customer UI
+            return _client_response(
+                ok=False,
+                status="remote_error",
+                message="Nerver PIX 接口调用失败，请稍后重试",
+                extra={"mode": mode, "endpoint": endpoint_path},
+            )
+
+        return self._client_result_from_remote(
+            remote=remote,
+            mode=mode,
+            endpoint_path=endpoint_path,
+        )
+
+    def _client_ckd_codes(self) -> set[str]:
+        configured = _config_value("pix_client_ckd_codes", "PIX_CLIENT_CKD_CODES", "")
+        return _split_codes(configured)
+
+    def _extract_client_token(self, credential: str) -> str:
+        raw = credential.strip()
+        if not raw:
+            return ""
+        if raw.startswith("{") or raw.startswith("["):
+            try:
+                parsed = json.loads(raw)
+            except ValueError:
+                return ""
+            return _find_token_in_json(parsed)
+        return raw
+
+    def _client_result_from_remote(
+        self,
+        *,
+        remote: dict[str, Any],
+        mode: str,
+        endpoint_path: str,
+    ) -> dict[str, Any]:
+        ok = bool(remote.get("ok"))
+        status = "success" if ok else "remote_failed"
+        message = _remote_text(remote.get("message")) or (
+            "PIX 已生成"
+            if ok
+            else f"Nerver PIX 返回失败: {_remote_text(remote.get('reason')) or 'unknown'}"
+        )
+        return _client_response(
+            ok=ok,
+            status=status,
+            message=message,
+            extra={
+                "mode": mode,
+                "endpoint": endpoint_path,
+                "reason": _remote_text(remote.get("reason")),
+                "pix_qr_data": _remote_text(remote.get("pix_qr_data")),
+                "pix_qr_image_url": _remote_text(remote.get("pix_qr_image_url")),
+                "pix_hosted_url": _remote_text(remote.get("pix_hosted_url")),
+                "stripe_hosted_url": _remote_text(remote.get("stripe_hosted_url")),
+                "pix_expires_iso": _remote_text(remote.get("pix_expires_iso")),
+                "request_id": _remote_text(remote.get("request_id")),
+            },
+        )
 
     def _call_remote_pix(self, *, endpoint_path: str, body: dict[str, Any]) -> dict[str, Any]:
         base_url = _config_value(
