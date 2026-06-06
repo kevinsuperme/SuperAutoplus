@@ -91,6 +91,7 @@ docs/
 # AI 工具 & 设计文档
 AGENTS.md
 .claude/
+.superpowers/
 .trellis/
 .windsurf/
 docs/REFACTOR-PLAN.md
