@@ -1,5 +1,7 @@
 # Converter Client Page Implementation Plan
+测试页面地址：
 
+http://129.204.48.16:8000/converter
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Build `/converter` as a public React page for CPA / sub2api conversion, using local browser-only conversion by default.

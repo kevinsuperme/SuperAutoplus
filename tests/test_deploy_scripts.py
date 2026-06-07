@@ -38,7 +38,11 @@ def test_remote_deploy_script_normalizes_bash_stdin_to_lf() -> None:
     text = script.read_text(encoding="utf-8")
 
     assert "$Script -replace '\\r\\n?', \"`n\"" in text
-    assert "$normalizedScript | & ssh @args" in text
+    assert "[Convert]::ToBase64String" in text
+    assert "printf '%s'" in text
+    assert "base64 -d | bash -s --" in text
+    assert "$encodedScript | & ssh @args" not in text
+    assert "$normalizedScript | & ssh @args" not in text
 
 
 def test_remote_smoke_script_covers_release_gate_endpoints() -> None:

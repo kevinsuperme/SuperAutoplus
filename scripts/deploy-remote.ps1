@@ -56,17 +56,19 @@ function Invoke-Ssh {
 
 function Invoke-RemoteScript {
     param([string]$Script)
+    $normalizedScript = $Script -replace '\r\n?', "`n"
+    $encodedScript = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($normalizedScript))
+    $remoteCommand = "printf '%s' '$encodedScript' | base64 -d | bash -s -- '$RemoteDir' '$RemoteBackupRoot' '$ReleaseId' '$RemotePackage'"
     $args = @(
         "-i", $KeyPath,
         "-o", "BatchMode=yes",
         "-o", "ConnectTimeout=10",
         "-o", "StrictHostKeyChecking=accept-new",
         $Target,
-        "bash", "-s", "--", $RemoteDir, $RemoteBackupRoot, $ReleaseId, $RemotePackage
+        $remoteCommand
     )
-    Write-Output "+ ssh $Target bash -s -- <script>"
-    $normalizedScript = $Script -replace '\r\n?', "`n"
-    $normalizedScript | & ssh @args
+    Write-Output "+ ssh $Target base64 -d | bash -s -- <script>"
+    & ssh @args
     if ($LASTEXITCODE -ne 0) {
         throw "Remote script failed with exit code $LASTEXITCODE"
     }
