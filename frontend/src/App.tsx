@@ -23,6 +23,7 @@ import CtfGptPlus from "@/pages/CtfGptPlus";
 import GoPayGptPlus from "@/pages/GoPayGptPlus";
 import PixGptPlus from "@/pages/PixGptPlus";
 import PlusManager from "@/pages/PlusManager";
+import ConverterClient from "@/pages/ConverterClient";
 import PxlPlusClient from "@/pages/PxlPlusClient";
 import LuckMailCodeClient from "@/pages/LuckMailCodeClient";
 import UpdateBanner from "@/components/UpdateBanner";
@@ -500,6 +501,14 @@ function AppContent() {
     );
 
   const publicRoute = getPublicClientRoute(window.location.pathname);
+
+  if (publicRoute === "/converter") {
+    return (
+      <BrowserRouter>
+        <ConverterClient />
+      </BrowserRouter>
+    );
+  }
 
   if (publicRoute === "/pxl-plus") {
     return (
