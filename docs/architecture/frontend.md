@@ -45,12 +45,15 @@ Vite 配置会把构建产物输出到仓库根目录 `static/`，由 FastAPI �
 
 - `/pxl-plus` -> `frontend/src/pages/PxlPlusClient.tsx`
 - `/luckmail-code` -> `frontend/src/pages/LuckMailCodeClient.tsx`
+- `/converter` -> `frontend/src/pages/ConverterClient.tsx`
 
 公开路由集合在 `frontend/src/lib/public-routes.ts`：
 
 ```ts
-const PUBLIC_CLIENT_ROUTES = new Set(["/pxl-plus", "/luckmail-code"]);
+const PUBLIC_CLIENT_ROUTES = new Set(["/pxl-plus", "/luckmail-code", "/converter"]);
 ```
+
+`/converter` 是浏览器本地转换页，转换逻辑在 `frontend/src/lib/account-converter.ts`。该页面默认不调用后端 API，不携带后台 Authorization，也不上传用户选择的 JSON 文件。
 
 后台路由在登录判断之后渲染：
 

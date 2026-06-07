@@ -6,8 +6,9 @@
 
 - `/pxl-plus`
 - `/luckmail-code`
+- `/converter`
 
-公开 API 前缀由 `core/auth.py` 的 `_PUBLIC_PREFIXES` 放行。公开页面必须通过自身业务参数完成授权和安全控制。
+公开 API 前缀由 `src/core/auth.py` 的 `_PUBLIC_PREFIXES` 放行。公开页面必须通过自身业务参数完成授权和安全控制。
 
 ## `/pxl-plus`
 
@@ -26,7 +27,7 @@ POST /api/pix-gpt-plus/client/open
 服务实现：
 
 ```text
-application/pix_gpt_plus.py::PixGptPlusService.generate_for_client_token()
+src/application/pix_gpt_plus.py::PixGptPlusService.generate_for_client_token()
 ```
 
 ### 输入
@@ -129,13 +130,13 @@ POST /api/luckmail/client/code
 服务实现：
 
 ```text
-application/luckmail_client.py::LuckMailClientCodeService.get_code()
+src/application/luckmail_client.py::LuckMailClientCodeService.get_code()
 ```
 
 LuckMail provider：
 
 ```text
-core/luckmail_mailbox.py::LuckMailMailbox
+src/core/luckmail_mailbox.py::LuckMailMailbox
 ```
 
 ### 输入格式
@@ -206,3 +207,37 @@ tok_example
 - 不返回远端完整邮件正文。
 - 不在响应中返回 token。
 - 前端只显示邮箱和验证码。
+
+## `/converter`
+
+页面组件：
+
+```text
+frontend/src/pages/ConverterClient.tsx
+```
+
+转换逻辑：
+
+```text
+frontend/src/lib/account-converter.ts
+```
+
+后端接口：
+
+```text
+无。默认本地转换，不上传文件。
+```
+
+### 支持格式
+
+- `sub2api -> CPA`: 选择一个 sub2api JSON，根据 `accounts` 数组拆分出多个 CPA JSON。
+- `CPA -> sub2api`: 选择一个或多个 CPA JSON，合并为一个 sub2api JSON。
+
+### 安全策略
+
+- 页面使用浏览器 `FileReader` 读取 JSON。
+- 页面不调用后端 API。
+- 页面不写 localStorage、sessionStorage 或 IndexedDB。
+- 结构预览会脱敏长 token。
+- 下载文件由浏览器 Blob 生成。
+- 根目录 `converter.html` 仅作为历史离线辅助入口；生产入口以 `/converter` 为准。
