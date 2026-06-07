@@ -455,7 +455,35 @@ function LoginScreen({ onLogin }: { onLogin: (token: string) => void }) {
   );
 }
 
-function AppContent() {
+function PublicClientRoute({ route }: { route: string }) {
+  if (route === "/converter") {
+    return (
+      <BrowserRouter>
+        <ConverterClient />
+      </BrowserRouter>
+    );
+  }
+
+  if (route === "/pxl-plus") {
+    return (
+      <BrowserRouter>
+        <PxlPlusClient />
+      </BrowserRouter>
+    );
+  }
+
+  if (route === "/luckmail-code") {
+    return (
+      <BrowserRouter>
+        <LuckMailCodeClient />
+      </BrowserRouter>
+    );
+  }
+
+  return null;
+}
+
+function ProtectedAppContent() {
   const { t } = useI18n();
   const [theme, setTheme] = useState(
     () => localStorage.getItem("theme") || "light",
@@ -500,32 +528,6 @@ function AppContent() {
       c === "dark" ? "light" : c === "light" ? "system" : "dark",
     );
 
-  const publicRoute = getPublicClientRoute(window.location.pathname);
-
-  if (publicRoute === "/converter") {
-    return (
-      <BrowserRouter>
-        <ConverterClient />
-      </BrowserRouter>
-    );
-  }
-
-  if (publicRoute === "/pxl-plus") {
-    return (
-      <BrowserRouter>
-        <PxlPlusClient />
-      </BrowserRouter>
-    );
-  }
-
-  if (publicRoute === "/luckmail-code") {
-    return (
-      <BrowserRouter>
-        <LuckMailCodeClient />
-      </BrowserRouter>
-    );
-  }
-
   if (authState === "loading") {
     return (
       <div className="app-shell flex h-screen items-center justify-center text-sm font-medium text-[var(--text-muted)]">
@@ -542,6 +544,14 @@ function AppContent() {
       <Shell theme={theme} setTheme={setTheme} toggleTheme={toggleTheme} />
     </BrowserRouter>
   );
+}
+
+function AppContent() {
+  const publicRoute = getPublicClientRoute(window.location.pathname);
+  if (publicRoute) {
+    return <PublicClientRoute route={publicRoute} />;
+  }
+  return <ProtectedAppContent />;
 }
 
 export default function App() {
