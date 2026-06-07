@@ -88,6 +88,7 @@ data/
 
 # AI 工具缓存
 .claude/
+.tmp/
 .superpowers/
 .trellis/
 .windsurf/

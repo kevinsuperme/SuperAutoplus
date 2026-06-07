@@ -65,7 +65,8 @@ function Invoke-RemoteScript {
         "bash", "-s", "--", $RemoteDir, $RemoteBackupRoot, $ReleaseId, $RemotePackage
     )
     Write-Output "+ ssh $Target bash -s -- <script>"
-    $Script | & ssh @args
+    $normalizedScript = $Script -replace '\r\n?', "`n"
+    $normalizedScript | & ssh @args
     if ($LASTEXITCODE -ne 0) {
         throw "Remote script failed with exit code $LASTEXITCODE"
     }

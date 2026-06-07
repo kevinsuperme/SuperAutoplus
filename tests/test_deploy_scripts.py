@@ -33,6 +33,14 @@ def test_remote_deploy_script_has_required_safety_gates() -> None:
     assert "No files selected for deployment package." in text
 
 
+def test_remote_deploy_script_normalizes_bash_stdin_to_lf() -> None:
+    script = ROOT / "scripts" / "deploy-remote.ps1"
+    text = script.read_text(encoding="utf-8")
+
+    assert "$Script -replace '\\r\\n?', \"`n\"" in text
+    assert "$normalizedScript | & ssh @args" in text
+
+
 def test_remote_smoke_script_covers_release_gate_endpoints() -> None:
     script = ROOT / "scripts" / "remote-smoke.ps1"
     assert script.is_file()
