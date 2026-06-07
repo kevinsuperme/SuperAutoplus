@@ -6,11 +6,11 @@
 
 | 单元 | 路径 | 责任 |
 | --- | --- | --- |
-| 主后端 | `main.py`, `api/`, `application/`, `core/`, `infrastructure/`, `domain/` | FastAPI API、任务编排、平台注册、Provider 配置、账号资产和统计 |
+| 主后端 | `main.py`, `src/api/`, `src/application/`, `src/core/`, `src/infrastructure/`, `src/domain/` | FastAPI API、任务编排、平台注册、Provider 配置、账号资产和统计 |
 | Web 前端 | `frontend/` | React 管理后台和公开客户页面 |
 | Electron 桌面壳 | `electron/` | 打包后端可执行文件并通过 Electron 启动桌面客户端 |
-| 客户门户 API | `customer_portal_api/` | 独立 C 端/管理端后端，复用主项目注册内核和账号/任务能力 |
-| GoPay 协议工具 | `gopay-auto-protocol/`, `platforms/gopay-deploy/` | GoPay 协议注册、付款、部署 worker 和调试工具 |
+| 客户门户 API | `src/customer_portal_api/` | 独立 C 端/管理端后端，复用主项目注册内核和账号/任务能力 |
+| GoPay 协议工具 | `src/platforms/gopay-deploy/`, `docs/archives/gopay-protocol-research/` | GoPay 协议注册、付款、部署 worker 和历史逆向研究资料 |
 
 ## 主应用启动链路
 
@@ -42,13 +42,13 @@
 
 | 层 | 目录 | 说明 |
 | --- | --- | --- |
-| API Adapter | `api/` | FastAPI 路由、Pydantic 请求模型、HTTP 错误转换 |
-| Application | `application/` | 业务用例和服务编排，如账号、任务、Provider、PXL、LuckMail |
-| Domain | `domain/` | 领域 DTO/Command/Query，隔离接口数据结构 |
-| Infrastructure | `infrastructure/` | SQLModel repository、runtime adapter、配置读取、统计查询 |
-| Core | `core/` | 数据库模型、平台基类、注册流、Provider 基类、调度、认证、生命周期、Solver |
-| Platform Plugins | `platforms/` | 每个平台的注册/校验/动作能力 |
-| Provider Plugins | `providers/` | mailbox/captcha/sms/proxy 驱动注册与工厂 |
+| API Adapter | `src/api/` | FastAPI 路由、Pydantic 请求模型、HTTP 错误转换 |
+| Application | `src/application/` | 业务用例和服务编排，如账号、任务、Provider、PXL、LuckMail |
+| Domain | `src/domain/` | 领域 DTO/Command/Query，隔离接口数据结构 |
+| Infrastructure | `src/infrastructure/` | SQLModel repository、runtime adapter、配置读取、统计查询 |
+| Core | `src/core/` | 数据库模型、平台基类、注册流、Provider 基类、调度、认证、生命周期、Solver |
+| Platform Plugins | `src/platforms/` | 每个平台的注册/校验/动作能力 |
+| Provider Plugins | `src/providers/` | mailbox/captcha/sms/proxy 驱动注册与工厂 |
 
 ## 请求流
 

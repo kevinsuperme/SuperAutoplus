@@ -5,6 +5,7 @@
 | 路径 | 说明 |
 | --- | --- |
 | `main.py` | 主 FastAPI 应用入口、生命周期、路由注册、SPA fallback |
+| `src/` | Python 后端源码根，导入包名保持 `api.*`、`core.*`、`platforms.*` 等 |
 | `requirements.txt` | 后端依赖 |
 | `pytest.ini` | pytest 配置 |
 | `Dockerfile` | 主应用 Docker 镜像 |
@@ -17,48 +18,48 @@
 
 | 路径 | 说明 |
 | --- | --- |
-| `api/` | FastAPI 路由适配层 |
-| `application/` | 业务用例与服务编排 |
-| `domain/` | DTO、Command、Query、领域模型 |
-| `infrastructure/` | Repository、配置、runtime adapter |
-| `core/` | 数据库、认证、注册流、Provider/Platform 基类、生命周期、Scheduler、Solver、账号图 |
-| `core/registration/` | 浏览器、协议邮箱、协议 OAuth 注册流和 adapter 类型 |
-| `core/executors/` | 协议和 Playwright 执行器 |
-| `services/` | 任务运行时和 Solver 管理器 |
-| `services/turnstile_solver/` | 本地 Turnstile Solver 子服务 |
+| `src/api/` | FastAPI 路由适配层 |
+| `src/application/` | 业务用例与服务编排 |
+| `src/domain/` | DTO、Command、Query、领域模型 |
+| `src/infrastructure/` | Repository、配置、runtime adapter |
+| `src/core/` | 数据库、认证、注册流、Provider/Platform 基类、生命周期、Scheduler、Solver、账号图 |
+| `src/core/registration/` | 浏览器、协议邮箱、协议 OAuth 注册流和 adapter 类型 |
+| `src/core/executors/` | 协议和 Playwright 执行器 |
+| `src/services/` | 任务运行时和 Solver 管理器 |
+| `src/services/turnstile_solver/` | 本地 Turnstile Solver 子服务 |
 
 ## 平台插件
 
 | 路径 | 说明 |
 | --- | --- |
-| `platforms/chatgpt/` | ChatGPT 注册、OAuth、Token 刷新、付款链接、PayPal/Stripe/CPA 上传 |
-| `platforms/cursor/` | Cursor 注册、OAuth、桌面切换、状态查询 |
-| `platforms/kiro/` | Kiro 注册、OAuth、token 刷新、桌面切换 |
-| `platforms/windsurf/` | Windsurf 注册、Trial 检查、链接生成、桌面切换 |
-| `platforms/gopay/` | GoPay 协议账号和付款能力 |
-| `platforms/anything/` | 通用适配器 |
-| `platforms/blink/` | Blink.new |
-| `platforms/cerebras/` | Cerebras |
-| `platforms/grok/` | Grok |
-| `platforms/openblocklabs/` | OpenBlockLabs |
-| `platforms/tavily/` | Tavily |
-| `platforms/trae/` | Trae.ai |
-| `platforms/gopay-deploy/` | GoPay 部署 worker |
+| `src/platforms/chatgpt/` | ChatGPT 注册、OAuth、Token 刷新、付款链接、PayPal/Stripe/CPA 上传 |
+| `src/platforms/cursor/` | Cursor 注册、OAuth、桌面切换、状态查询 |
+| `src/platforms/kiro/` | Kiro 注册、OAuth、token 刷新、桌面切换 |
+| `src/platforms/windsurf/` | Windsurf 注册、Trial 检查、链接生成、桌面切换 |
+| `src/platforms/gopay/` | GoPay 协议账号和付款能力 |
+| `src/platforms/anything/` | 通用适配器 |
+| `src/platforms/blink/` | Blink.new |
+| `src/platforms/cerebras/` | Cerebras |
+| `src/platforms/grok/` | Grok |
+| `src/platforms/openblocklabs/` | OpenBlockLabs |
+| `src/platforms/tavily/` | Tavily |
+| `src/platforms/trae/` | Trae.ai |
+| `src/platforms/gopay-deploy/` | GoPay 部署 worker |
 
 ## Provider
 
 | 路径 | 说明 |
 | --- | --- |
-| `providers/registry.py` | Provider 注册表与工厂 |
-| `providers/mailbox/` | 邮箱 Provider 包装层 |
-| `providers/captcha/` | 验证码 Provider |
-| `providers/sms/` | 接码 Provider |
-| `providers/proxy/` | 代理 Provider |
-| `core/base_mailbox.py` | Mailbox 基类和多种邮箱实现注册 |
-| `core/luckmail_mailbox.py` | LuckMail API Provider |
-| `core/outlook_email_mailbox.py` | outlookEmail Provider |
-| `core/local_ms_mailbox.py` | 本地微软邮箱池 |
-| `core/pingme_sms.py` | PingMe 接码实现 |
+| `src/providers/registry.py` | Provider 注册表与工厂 |
+| `src/providers/mailbox/` | 邮箱 Provider 包装层 |
+| `src/providers/captcha/` | 验证码 Provider |
+| `src/providers/sms/` | 接码 Provider |
+| `src/providers/proxy/` | 代理 Provider |
+| `src/core/base_mailbox.py` | Mailbox 基类和多种邮箱实现注册 |
+| `src/core/luckmail_mailbox.py` | LuckMail API Provider |
+| `src/core/outlook_email_mailbox.py` | outlookEmail Provider |
+| `src/core/local_ms_mailbox.py` | 本地微软邮箱池 |
+| `src/core/pingme_sms.py` | PingMe 接码实现 |
 
 ## 前端
 
@@ -97,12 +98,12 @@
 
 | 路径 | 说明 |
 | --- | --- |
-| `customer_portal_api/main.py` | 独立 FastAPI 入口 |
-| `customer_portal_api/app/routers/` | auth/app/admin/payment 路由 |
-| `customer_portal_api/app/services/` | 门户服务 |
-| `customer_portal_api/app/models.py` | 门户模型 |
-| `customer_portal_api/app/db.py` | 门户数据库初始化 |
-| `customer_portal_api/README.md` | 门户 API 文档 |
+| `src/customer_portal_api/main.py` | 独立 FastAPI 入口 |
+| `src/customer_portal_api/app/routers/` | auth/app/admin/payment 路由 |
+| `src/customer_portal_api/app/services/` | 门户服务 |
+| `src/customer_portal_api/app/models.py` | 门户模型 |
+| `src/customer_portal_api/app/db.py` | 门户数据库初始化 |
+| `src/customer_portal_api/README.md` | 门户 API 文档 |
 
 ## 测试
 
@@ -123,4 +124,4 @@
 | `tools/` | HAR 捕获、分析、任务尾随等工具 |
 | `scripts/smoke.py` | smoke 脚本 |
 | `assets/screenshots/` | README 截图资源 |
-| `gopay-auto-protocol/` | GoPay 协议实验、抓包和工具代码 |
+| `docs/archives/gopay-protocol-research/` | GoPay 协议实验、抓包和历史研究代码归档 |

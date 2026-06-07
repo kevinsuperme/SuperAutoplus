@@ -40,7 +40,7 @@ RUN python -m camoufox fetch
 ARG APP_VERSION=dev
 COPY . .
 # 注入版本号
-RUN echo "__version__ = \"${APP_VERSION}\"" > core/version.py
+RUN echo "__version__ = \"${APP_VERSION}\"" > src/core/version.py
 # 不需要 .venv 和 frontend 源码
 RUN rm -rf .venv frontend
 
@@ -54,6 +54,7 @@ RUN chmod +x /docker-entrypoint.sh
 # APP_PASSWORD: 运行时通过 -e APP_PASSWORD=xxx 设置
 # 不设置则无密码保护（适用于本地使用）
 ENV APP_PASSWORD=""
+ENV PYTHONPATH=/app/src
 
 EXPOSE 8000 6080 8889
 

@@ -8,7 +8,7 @@
 POST /api/tasks/register
 ```
 
-请求模型定义在 `api/task_commands.py` 的 `RegisterTaskRequest`：
+请求模型定义在 `src/api/task_commands.py` 的 `RegisterTaskRequest`：
 
 | 字段 | 默认 | 说明 |
 | --- | --- | --- |
@@ -144,7 +144,7 @@ POST /api/tasks/gopay-pay-chatgpt
 - 抓包调试模式。
 - Stripe init 或短链模式。
 
-执行逻辑在 `application/tasks.py` 和 `application/gopay_pay_chatgpt.py`，GoPay 协议工具位于 `platforms/gopay/`、`gopay-auto-protocol/` 和 `platforms/gopay-deploy/`。
+执行逻辑在 `src/application/tasks.py` 和 `src/application/gopay_pay_chatgpt.py`，GoPay 运行代码位于 `src/platforms/gopay/` 和 `src/platforms/gopay-deploy/`，历史协议研究资料归档在 `docs/archives/gopay-protocol-research/`。
 
 ## 任务日志
 

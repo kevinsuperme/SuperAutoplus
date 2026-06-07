@@ -39,6 +39,6 @@ SuperAutoplus 是一个多平台 AI 账号自动注册、账号资产管理和 C
 ## 文档维护规则
 
 - 新增或修改代码能力时，应同步更新对应架构、API、功能或开发文档。
-- API 文档中的路径必须来自 `api/*.py` 的真实路由声明。
-- Provider 和平台能力必须来自 `infrastructure/provider_definitions_repository.py`、`core/registry.py` 和 `platforms/*/plugin.py`。
+- API 文档中的路径必须来自 `src/api/*.py` 的真实路由声明。
+- Provider 和平台能力必须来自 `src/infrastructure/provider_definitions_repository.py`、`src/core/registry.py` 和 `src/platforms/*/plugin.py`。
 - 不在文档中写入真实 API Key、账号 token、Cookie、Session JSON、服务器口令或本地运行时数据。

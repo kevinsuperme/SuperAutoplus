@@ -16,14 +16,15 @@ rm -rf dist build backend.spec
 
 echo "[2/3] 打包后端..."
 .venv/bin/python -m PyInstaller --onefile --name backend \
-  --add-data="platforms:platforms" \
-  --add-data="core:core" \
-  --add-data="api:api" \
-  --add-data="services:services" \
-  --add-data="providers:providers" \
-  --add-data="application:application" \
-  --add-data="infrastructure:infrastructure" \
-  --add-data="domain:domain" \
+  --paths="src" \
+  --add-data="src/platforms:platforms" \
+  --add-data="src/core:core" \
+  --add-data="src/api:api" \
+  --add-data="src/services:services" \
+  --add-data="src/providers:providers" \
+  --add-data="src/application:application" \
+  --add-data="src/infrastructure:infrastructure" \
+  --add-data="src/domain:domain" \
   --add-data="static:static" \
   --add-binary="${DRIVER_DIR}/node:playwright/driver" \
   --add-data="${DRIVER_DIR}/package:playwright/driver/package" \

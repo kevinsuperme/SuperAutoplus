@@ -43,7 +43,7 @@ sqlite:////app/data/account_manager.db
    - `playwright install --with-deps chromium`
    - `python -m camoufox fetch`
    - 复制后端源码。
-   - 注入 `core/version.py`。
+   - 注入 `src/core/version.py`。
    - 复制前端构建产物到 `/app/static`。
 
 启动脚本 `docker-entrypoint.sh`：
@@ -119,7 +119,7 @@ curl -sS -H "Content-Type: application/json" \
 独立 Docker Compose：
 
 ```bash
-docker compose -f customer_portal_api/docker-compose.yml up --build
+docker compose -f src/customer_portal_api/docker-compose.yml up --build
 ```
 
 默认端口：
@@ -135,4 +135,4 @@ http://127.0.0.1:8100/docs
 http://127.0.0.1:8100/openapi.json
 ```
 
-默认管理员账号由 `customer_portal_api/README.md` 描述，生产环境必须通过环境变量更换。
+默认管理员账号由 `src/customer_portal_api/README.md` 描述，生产环境必须通过环境变量更换。

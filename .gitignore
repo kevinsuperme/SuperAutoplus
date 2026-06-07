@@ -24,6 +24,7 @@ logger.txt
 progress.txt
 pytest_out.txt
 task_events.txt
+artifacts/
 
 # Runtime / debug / capture artifacts
 _gopay_capture/
@@ -39,13 +40,13 @@ _tmp_*.py
 # Local account/session stores
 acc.json
 acc*.json
-platforms/gopay-deploy/config/gopay_worker_accounts.json
-platforms/gopay-deploy/app/src/opai/core/envelope_links.json
+src/platforms/gopay-deploy/config/gopay_worker_accounts.json
+src/platforms/gopay-deploy/app/src/opai/core/envelope_links.json
 
 # Protocol capture output
-gopay-auto-protocol/**/captures/*.jsonl
-gopay-auto-protocol/**/ssl_dump*
-gopay-auto-protocol/**/protobuf_packets.json
+docs/archives/gopay-protocol-research/**/captures/*.jsonl
+docs/archives/gopay-protocol-research/**/ssl_dump*
+docs/archives/gopay-protocol-research/**/protobuf_packets.json
 
 # 账号数据
 accounts.txt
@@ -95,5 +96,5 @@ data/
 *.har
 
 # Frida release/devkit binaries are too large for normal Git history.
-gopay-auto-protocol/**/frida-core-devkit-*/
-gopay-auto-protocol/**/frida-server-*
+docs/archives/gopay-protocol-research/**/frida-core-devkit-*/
+docs/archives/gopay-protocol-research/**/frida-server-*

@@ -6,7 +6,8 @@ import { fileURLToPath } from 'node:url'
 const scriptDir = path.dirname(fileURLToPath(import.meta.url))
 const repoRoot = path.resolve(scriptDir, '..')
 const isWindows = process.platform === 'win32'
-const python = path.join(repoRoot, '.venv', isWindows ? 'Scripts/python.exe' : 'bin/python')
+const venvPython = path.join(repoRoot, '.venv', isWindows ? 'Scripts/python.exe' : 'bin/python')
+const python = process.env.PYTHON || (existsSync(venvPython) ? venvPython : 'python')
 
 function run(command, args, options = {}) {
   const result = spawnSync(command, args, {
@@ -39,10 +40,7 @@ function read(command, args) {
   return result.stdout.trim()
 }
 
-if (!existsSync(python)) {
-  console.error(`[error] Python virtualenv not found: ${python}`)
-  process.exit(1)
-}
+read(python, ['-c', 'import sys; print(sys.executable)'])
 
 const driverDir = read(python, [
   '-c',
@@ -77,22 +75,24 @@ run(python, [
   '--onefile',
   '--name',
   'backend',
+  '--paths',
+  'src',
   '--add-data',
-  addData('platforms', 'platforms'),
+  addData('src/platforms', 'platforms'),
   '--add-data',
-  addData('core', 'core'),
+  addData('src/core', 'core'),
   '--add-data',
-  addData('api', 'api'),
+  addData('src/api', 'api'),
   '--add-data',
-  addData('services', 'services'),
+  addData('src/services', 'services'),
   '--add-data',
-  addData('providers', 'providers'),
+  addData('src/providers', 'providers'),
   '--add-data',
-  addData('application', 'application'),
+  addData('src/application', 'application'),
   '--add-data',
-  addData('infrastructure', 'infrastructure'),
+  addData('src/infrastructure', 'infrastructure'),
   '--add-data',
-  addData('domain', 'domain'),
+  addData('src/domain', 'domain'),
   '--add-data',
   addData('static', 'static'),
   '--add-binary',

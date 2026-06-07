@@ -90,18 +90,18 @@ Provider API Key 推荐通过 Web UI 写入 `provider_settings`，不要提交�
 
 ## 项目架构与代码组织
 
-项目采用分层架构（API → Application → Domain → Infrastructure），核心共享模块位于 `core/`。
+项目采用分层架构（API → Application → Domain → Infrastructure），后端源码位于 `src/`，运行时导入名保持 `api.*`、`application.*`、`core.*` 等。
 
 ### 分层说明
 
 | 层 | 目录 | 职责 |
 | --- | --- | --- |
-| API 适配 | `api/` | HTTP 路由，只做请求模型验证和服务调用，不承载复杂业务逻辑 |
-| 业务编排 | `application/` | 业务流程、多步骤编排、跨服务调用 |
-| 领域模型 | `domain/` | 纯数据类：`AccountRecord`、`TaskSummary`、`ProxyRecord`、`PlatformAction` 等 |
-| 数据访问 | `infrastructure/` | Repository 模式：`AccountsRepository`、`TasksReadRepository`、`ProxiesRepository` 等 |
+| API 适配 | `src/api/` | HTTP 路由，只做请求模型验证和服务调用，不承载复杂业务逻辑 |
+| 业务编排 | `src/application/` | 业务流程、多步骤编排、跨服务调用 |
+| 领域模型 | `src/domain/` | 纯数据类：`AccountRecord`、`TaskSummary`、`ProxyRecord`、`PlatformAction` 等 |
+| 数据访问 | `src/infrastructure/` | Repository 模式：`AccountsRepository`、`TasksReadRepository`、`ProxiesRepository` 等 |
 
-### `api/` 路由模块
+### `src/api/` 路由模块
 
 | 模块 | 说明 |
 | --- | --- |
@@ -128,7 +128,7 @@ Provider API Key 推荐通过 Web UI 写入 `provider_settings`，不要提交�
 | `api.task_commands` | 任务创建、取消和 SSE 日志 |
 | `api.task_logs` | 历史任务日志 |
 
-### `application/` 业务服务
+### `src/application/` 业务服务
 
 | 模块 | 说明 |
 | --- | --- |
@@ -155,9 +155,9 @@ Provider API Key 推荐通过 Web UI 写入 `provider_settings`，不要提交�
 | `tasks_query.py` | 任务查询 |
 | `task_logs.py` | 任务日志 |
 
-### `core/` 核心共享模块
+### `src/core/` 核心共享模块
 
-`core/` 是跨层共享的基础设施，不依赖 `api/`、`application/`、`infrastructure/` 或 `domain/`。
+`src/core/` 是跨层共享的基础设施，不依赖 `src/api/`、`src/application/`、`src/infrastructure/` 或 `src/domain/`。
 
 **数据库与模型：**
 
@@ -180,7 +180,7 @@ Provider API Key 推荐通过 Web UI 写入 `provider_settings`，不要提交�
 | `capability_registry.py` | 能力注册表：`CapabilityDefinition` 和 `CapabilityRegistry` |
 | `provider_drivers.py` | Provider 驱动定义和元数据 |
 
-**注册流程（`core/registration/`）：**
+**注册流程（`src/core/registration/`）：**
 
 | 模块 | 说明 |
 | --- | --- |
@@ -190,7 +190,7 @@ Provider API Key 推荐通过 Web UI 写入 `provider_settings`，不要提交�
 | `helpers.py` | 注册辅助函数 |
 | `models.py` | 注册数据模型 |
 
-**执行器（`core/executors/`）：**
+**执行器（`src/core/executors/`）：**
 
 | 模块 | 说明 |
 | --- | --- |
@@ -234,7 +234,7 @@ Provider API Key 推荐通过 Web UI 写入 `provider_settings`，不要提交�
 | `platform_accounts.py` | 平台账号管理 |
 | `account_display.py` | 账号展示格式化 |
 
-### `services/` 服务层
+### `src/services/` 服务层
 
 | 模块 | 说明 |
 | --- | --- |
@@ -242,9 +242,9 @@ Provider API Key 推荐通过 Web UI 写入 `provider_settings`，不要提交�
 | `solver_manager.py` | Turnstile Solver 子进程管理 |
 | `turnstile_solver/` | 基于 Quart/patchright/Camoufox 的 Turnstile Solver 子服务 |
 
-### `gopay-auto-protocol/` 协议实验
+### `docs/archives/gopay-protocol-research/` 协议实验归档
 
-GoPay 协议逆向实验、抓包分析、工具代码和部署方案。独立于主项目运行，不参与主后端构建。
+GoPay 协议逆向实验、抓包分析、工具代码和部署方案的历史归档。运行中的 GoPay worker 代码位于 `src/platforms/gopay-deploy/`；归档资料独立于主项目运行，不参与主后端构建。
 
 ### `scripts/` 和 `tests/`
 
@@ -255,17 +255,17 @@ GoPay 协议逆向实验、抓包分析、工具代码和部署方案。独立�
 
 ### 开发约定
 
-- 新 HTTP 路由放在 `api/`，只做请求模型和服务调用。
-- 业务逻辑放在 `application/`。
-- 新领域模型放在 `domain/`。
-- 新数据访问逻辑放在 `infrastructure/` repository。
-- 新平台能力放在 `platforms/<name>/plugin.py` 和相关 worker/core 文件。
-- 新 Provider 驱动放在 `providers/<type>/` 并注册到 `providers.registry`。
+- 新 HTTP 路由放在 `src/api/`，只做请求模型和服务调用。
+- 业务逻辑放在 `src/application/`。
+- 新领域模型放在 `src/domain/`。
+- 新数据访问逻辑放在 `src/infrastructure/` repository。
+- 新平台能力放在 `src/platforms/<name>/plugin.py` 和相关 worker/core 文件。
+- 新 Provider 驱动放在 `src/providers/<type>/` 并注册到 `providers.registry`。
 - 新 Provider UI 定义要同步更新 `infrastructure/provider_definitions_repository.py`。
 - 新公开页面要同时更新：
   - `frontend/src/lib/public-routes.ts`
   - `frontend/src/App.tsx`
-  - `core/auth.py` 的公开 API 前缀
+  - `src/core/auth.py` 的公开 API 前缀
   - `docs/features/public-client-pages.md`
 
 ## 本地常用验证
@@ -313,14 +313,14 @@ npm run build:mac
 npm run build:linux
 ```
 
-`electron/build-backend.sh` 使用 PyInstaller 把 `main.py` 打包为 `electron/backend/backend/backend`，并把 `platforms`, `core`, `api`, `services`, `providers`, `application`, `infrastructure`, `domain`, `static` 等资源加入包内。
+`electron/build-backend.mjs` 使用 PyInstaller 把 `main.py` 打包为 `electron/backend/backend/backend`，通过 `--paths src` 发现 Python 包，并把 `src/platforms`, `src/core`, `src/api`, `src/services`, `src/providers`, `src/application`, `src/infrastructure`, `src/domain`, `static` 等资源加入包内。
 
 ## Customer Portal API
 
 独立入口：
 
 ```bash
-python -m uvicorn customer_portal_api.main:app --host 0.0.0.0 --port 8100
+PYTHONPATH=src python -m uvicorn customer_portal_api.main:app --host 0.0.0.0 --port 8100
 ```
 
-该服务有自己的 `customer_portal_api/README.md`，复用主项目的注册内核、平台元数据、任务运行时、账号资产、代理和系统能力。
+该服务有自己的 `src/customer_portal_api/README.md`，复用主项目的注册内核、平台元数据、任务运行时、账号资产、代理和系统能力。

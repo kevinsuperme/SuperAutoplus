@@ -7,7 +7,9 @@
 ```ini
 [pytest]
 testpaths = tests
-pythonpath = .
+pythonpath =
+    .
+    src
 ```
 
 运行全部测试：
@@ -67,7 +69,7 @@ rg -n "订单查询标识|必须要求 LuckMail API Key" docs -g "!docs/testing/
 检查公开路由文档和代码是否一致：
 
 ```bash
-rg -n "pxl-plus|luckmail-code|pix-gpt-plus/client|luckmail/client" frontend/src core/auth.py api docs
+rg -n "pxl-plus|luckmail-code|pix-gpt-plus/client|luckmail/client" frontend/src src/core/auth.py src/api docs
 ```
 
 ## 构建验证

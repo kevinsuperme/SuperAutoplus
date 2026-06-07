@@ -1,6 +1,6 @@
 # HTTP API 参考
 
-所有主后端业务接口统一挂载在 `/api` 下。接口声明来自 `api/*.py` 的 FastAPI router。
+所有主后端业务接口统一挂载在 `/api` 下。接口声明来自 `src/api/*.py` 的 FastAPI router。
 
 ## 公开接口
 

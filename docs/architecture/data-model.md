@@ -1,6 +1,6 @@
 # 数据模型
 
-数据库模型定义在 `core/db.py`，使用 SQLModel + SQLite。默认数据库 URL：
+数据库模型定义在 `src/core/db.py`，使用 SQLModel + SQLite。默认数据库 URL：
 
 ```text
 sqlite:///account_manager.db
@@ -85,7 +85,7 @@ provider_type + provider_key
 - `platform`: 平台。
 - `status`: 当前状态。
 - `payload_json`: 任务输入。
-- `result_json`: 任务输出，默认包含 `errors`, `cashier_urls`, `data`。
+- `result_json`: 任务输出，默认 `{"errors": [], "cashier_urls": [], "data": None}`。
 - `progress_current`, `progress_total`
 - `success_count`, `error_count`
 - `error`
@@ -108,4 +108,4 @@ provider_type + provider_key
 - Provider definitions seed。
 - 清理空 Provider settings 和非真实 generic_http 数据。
 
-迁移逻辑在 `core/db.py` 内部集中维护，项目当前没有单独 Alembic 迁移目录。
+迁移逻辑在 `src/core/db.py` 内部集中维护，项目当前没有单独 Alembic 迁移目录。

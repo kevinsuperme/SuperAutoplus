@@ -27,6 +27,7 @@ mac:
   icon: build/icon.icns
 
 win:
+  signAndEditExecutable: false
   target:
     - target: nsis
   icon: build/icon.ico

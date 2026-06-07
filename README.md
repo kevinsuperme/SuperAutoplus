@@ -58,7 +58,7 @@
 | � **GoPay 付款 ChatGPT Plus** | 印尼 GoPay 协议化付款，自动完成 ChatGPT Plus 订阅的「生成支付链接 → Midtrans 收银台 → GoPay 14 步 API 付款」全链路 |
 | � **GoPay 账号自动注册**      | 印尼手机号 + PIN 协议注册 GoPay 账号，支持接码渠道轮换                         |
 | 🧾 **接码渠道扩展**            | 在原有 SMS-Activate / HeroSMS 之外，新增 SMSPool、SMSBower 渠道                |
-| 🌐 **C 端 / 管理端独立 API**   | `customer_portal_api/` 提供可独立部署的多租户门户后端                          |
+| 🌐 **C 端 / 管理端独立 API**   | `src/customer_portal_api/` 提供可独立部署的多租户门户后端                          |
 
 > 其余平台注册、邮箱 / 验证码 / 代理 provider、生命周期管理、成功率仪表盘等能力沿用并兼容上游框架。
 
@@ -224,7 +224,7 @@ cp .env.example .env
 - 后端接口统一位于 `/api/*`
 - 生产模式下前端构建产物由后端直接托管，访问 `http://localhost:8000` 即可
 - 开发模式下前端独立运行在 `http://localhost:5173`，通过 Vite 代理转发 API 请求
-- C 端 / 管理端独立 API 项目见 [customer_portal_api/README.md](customer_portal_api/README.md)
+- C 端 / 管理端独立 API 项目见 [src/customer_portal_api/README.md](src/customer_portal_api/README.md)
 
 ### 开发模式（前端热更新）
 
@@ -296,7 +296,7 @@ docker compose down         # 停止
 
 ### 流水线
 
-整条链路分三步（实现见 `application/gopay_pay_chatgpt.py`）：
+整条链路分三步（实现见 `src/application/gopay_pay_chatgpt.py`）：
 
 1. **协议** — 调用 `generate_plus_link(country=ID, currency=IDR)` 拿到 ChatGPT 的 `cashier_url`（Stripe hosted checkout）
 2. **浏览器** — 打开 `cashier_url`，等页面跳转到 Midtrans 收银台域，抓取 `midtrans_url`
@@ -498,31 +498,32 @@ docker compose down         # 停止
 ├── Dockerfile              # Docker 构建
 ├── docker-compose.yml      # Docker Compose 编排
 ├── requirements.txt        # Python 依赖
-├── api/                    # HTTP 路由层（账号 / 任务 / 配置 / 代理 / 统计 …）
-├── application/            # 应用服务层
-│   ├── gopay_pay_chatgpt.py    # GoPay 付款 ChatGPT Plus 编排器（本项目扩展）
-│   ├── tasks.py / task_commands.py  # 任务编排与执行
-│   └── ...
-├── domain/                 # 领域模型
-├── infrastructure/         # 仓储与运行时适配
-├── core/                   # 基础能力
-│   ├── base_platform.py    # 平台基类
-│   ├── base_mailbox.py     # 邮箱服务基类
-│   ├── base_captcha.py     # 验证码服务基类
-│   ├── base_sms.py         # 接码服务基类
-│   ├── registration/       # 注册流程编排（适配器 + 流程）
-│   ├── lifecycle.py        # 账号生命周期管理
-│   ├── proxy_pool.py       # 代理池（静态 + 动态）
-│   ├── registry.py         # 平台插件注册表
-│   └── any2api_sync.py     # Any2API 自动推送
-├── platforms/              # 平台插件层
-│   ├── chatgpt/            # ChatGPT（注册 / Plus 支付 / PayPal 结账）
-│   ├── gopay/              # GoPay 注册 + 接码渠道（本项目扩展）
-│   ├── gopay-deploy/       # GoPay 协议付款核心（Gojek / Midtrans）
-│   └── {platform}/         # 其他平台插件
-├── providers/              # Provider 插件层（mailbox / captcha / sms / proxy）
-├── services/               # 后台服务（Solver 进程管理 / 任务执行器）
-├── customer_portal_api/    # C 端 / 管理端独立 API
+├── src/                    # Python 后端源码根，pytest/Docker/PyInstaller 均加载此目录
+│   ├── api/                # HTTP 路由层（账号 / 任务 / 配置 / 代理 / 统计 …）
+│   ├── application/        # 应用服务层
+│   │   ├── gopay_pay_chatgpt.py    # GoPay 付款 ChatGPT Plus 编排器（本项目扩展）
+│   │   ├── tasks.py / task_commands.py  # 任务编排与执行
+│   │   └── ...
+│   ├── domain/             # 领域模型
+│   ├── infrastructure/     # 仓储与运行时适配
+│   ├── core/               # 基础能力
+│   │   ├── base_platform.py    # 平台基类
+│   │   ├── base_mailbox.py     # 邮箱服务基类
+│   │   ├── base_captcha.py     # 验证码服务基类
+│   │   ├── base_sms.py         # 接码服务基类
+│   │   ├── registration/       # 注册流程编排（适配器 + 流程）
+│   │   ├── lifecycle.py        # 账号生命周期管理
+│   │   ├── proxy_pool.py       # 代理池（静态 + 动态）
+│   │   ├── registry.py         # 平台插件注册表
+│   │   └── any2api_sync.py     # Any2API 自动推送
+│   ├── platforms/          # 平台插件层
+│   │   ├── chatgpt/        # ChatGPT（注册 / Plus 支付 / PayPal 结账）
+│   │   ├── gopay/          # GoPay 注册 + 接码渠道（本项目扩展）
+│   │   ├── gopay-deploy/   # GoPay 协议付款核心（Gojek / Midtrans）
+│   │   └── {platform}/     # 其他平台插件
+│   ├── providers/          # Provider 插件层（mailbox / captcha / sms / proxy）
+│   ├── services/           # 后台服务（Solver 进程管理 / 任务执行器）
+│   └── customer_portal_api/# C 端 / 管理端独立 API
 ├── electron/               # Electron 桌面端打包
 ├── tests/                  # 测试
 └── frontend/               # React 前端
@@ -534,10 +535,10 @@ docker compose down         # 停止
 
 ### 1. 新建平台目录
 
-在 `platforms/` 下新建目录，必须包含 `__init__.py` 和 `plugin.py`（`pkgutil.iter_modules` 只扫描带 `__init__.py` 的 Python 包）：
+在 `src/platforms/` 下新建目录，必须包含 `__init__.py` 和 `plugin.py`（运行时导入名仍是 `platforms.<name>`；`pkgutil.iter_modules` 只扫描带 `__init__.py` 的 Python 包）：
 
 ```
-platforms/myplatform/
+src/platforms/myplatform/
 ├── __init__.py
 ├── plugin.py              # 平台适配层（必须）
 ├── protocol_mailbox.py    # 协议模式注册逻辑（按需）
@@ -600,7 +601,7 @@ class MyPlatform(BasePlatform):
     capabilities = []
 ```
 
-系统启动时会自动扫描 `platforms/` 目录加载所有带 `@register` 装饰器的插件。
+系统启动时会自动扫描 `src/platforms/` 目录加载所有带 `@register` 装饰器的插件。
 
 ## 安全说明
 
@@ -608,7 +609,7 @@ class MyPlatform(BasePlatform):
 
 - **不要提交真实凭证**：账号导出文件（`acc*.json`）、数据库（`*.db`）、抓包/调试 dump（`*_inspect.txt`、`otp_*.txt`、`*.har`）均应在 `.gitignore` 中忽略，请勿强制提交。
 - **密钥走环境变量**：所有接码 / 验证码 / 代理的 API key 通过环境变量或 Web UI 配置，不要写死进源码。参考 [.env.example](.env.example)。
-- **公网部署加固**：Docker 部署务必设置 `APP_PASSWORD`；`customer_portal_api` 生产环境必须修改默认 `PORTAL_JWT_SECRET` 与管理员密码，并收敛 `PORTAL_CORS_ORIGINS`。
+- **公网部署加固**：Docker 部署务必设置 `APP_PASSWORD`；`src/customer_portal_api` 生产环境必须修改默认 `PORTAL_JWT_SECRET` 与管理员密码，并收敛 `PORTAL_CORS_ORIGINS`。
 - **凭证轮换**：若怀疑凭证泄露，第一时间在对应平台后台吊销 / 重置。
 
 ## 常见问题

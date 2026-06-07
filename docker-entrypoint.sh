@@ -19,4 +19,5 @@ fi
 websockify --web=/usr/share/novnc 6080 localhost:5900 &
 
 # 启动 FastAPI 后端
+export PYTHONPATH="/app/src${PYTHONPATH:+:$PYTHONPATH}"
 exec uvicorn main:app --host 0.0.0.0 --port 8000

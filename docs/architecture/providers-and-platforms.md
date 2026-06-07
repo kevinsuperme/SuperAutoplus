@@ -5,7 +5,7 @@
 平台插件由 `core.registry` 管理：
 
 - `@register` 装饰器注册 `BasePlatform` 子类。
-- `load_all()` 扫描 `platforms/*/plugin.py` 并导入插件。
+- `load_all()` 扫描 `src/platforms/*/plugin.py` 并导入插件。
 - `list_platforms()` 返回平台元数据和能力。
 - `get_platform_capabilities(name)` 会读取 `platform_capability_overrides`，没有覆盖时使用类默认值。
 - 新平台需要实现 `BasePlatform.check_valid()`，并按需实现注册适配器、桌面状态和能力动作。
@@ -37,7 +37,7 @@
 - `oauth_browser`: `ProtocolOAuthFlow` 或浏览器 OAuth runner
 - 其他协议邮箱注册：`ProtocolMailboxFlow`
 
-注册流定义在 `core/registration/flows.py`：
+注册流定义在 `src/core/registration/flows.py`：
 
 - `BrowserRegistrationFlow`: 浏览器注册，支持 OTP、验证链接、验证码求解、手机号 callback、OAuth 复用浏览器。
 - `ProtocolMailboxFlow`: 纯协议邮箱注册，支持 OTP、验证链接、Captcha、executor context。
@@ -55,12 +55,12 @@
 机制：
 
 - 各 Provider 模块通过 `@register_provider(provider_type, driver_type)` 注册类。
-- `load_all()` 扫描 `providers/captcha`, `providers/proxy`, `providers/sms`, `providers/mailbox`。
+- `load_all()` 扫描 `src/providers/captcha`, `src/providers/proxy`, `src/providers/sms`, `src/providers/mailbox`。
 - `create_provider(provider_type, driver_type, config)` 调用 Provider 类的 `from_config(config)`。
 
 ## 内置 Provider 定义
 
-内置定义由 `infrastructure/provider_definitions_repository.py` 的 `_BUILTIN_DEFINITIONS` seed 到数据库。
+内置定义由 `src/infrastructure/provider_definitions_repository.py` 的 `_BUILTIN_DEFINITIONS` seed 到数据库。
 
 ### Mailbox
 

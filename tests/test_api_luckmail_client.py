@@ -140,6 +140,23 @@ def test_luckmail_client_code_rejects_invalid_ticket_format():
     }
 
 
+def test_luckmail_client_code_rejects_short_token_only_ticket(monkeypatch):
+    from application.luckmail_client import LuckMailClientCodeService
+
+    monkeypatch.setattr(
+        "requests.Session",
+        lambda: FakeSession([FakeResponse({"code": 0, "data": {"verification_code": "123456"}})]),
+    )
+
+    result = LuckMailClientCodeService().get_code({"ticket": "bad"})
+
+    assert result == {
+        "ok": False,
+        "status": "invalid_ticket_format",
+        "message": "请输入正确的邮箱 Token 文本",
+    }
+
+
 def test_luckmail_client_code_rejects_invalid_email():
     from application.luckmail_client import LuckMailClientCodeService
 

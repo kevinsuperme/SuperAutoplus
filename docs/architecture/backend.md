@@ -13,11 +13,11 @@
 
 ## 路由模块
 
-`api/` 只做 HTTP 适配，不直接承载复杂业务逻辑。
+`src/api/` 只做 HTTP 适配，不直接承载复杂业务逻辑。
 
 | 模块 | 前缀 | 责任 |
 | --- | --- | --- |
-| `api.accounts` | `/api/accounts` | 账号 CRUD、导入导出、OAuth callback、Phone bind 直连能力 |
+| `api.accounts` | `/api/accounts` | 账号 CRUD、导入导出、Codex OAuth、Phone bind 直连能力 |
 | `api.account_checks` | `/api/accounts` | 单账号/批量有效性检测、计划刷新 |
 | `api.actions` | `/api/actions` | 平台能力动作列表和执行 |
 | `api.auth` | `/api/auth` | 密码保护状态和登录 |
@@ -42,7 +42,7 @@
 
 ## Application 服务
 
-`application/` 是业务编排层：
+`src/application/` 是业务编排层：
 
 - `accounts.py`, `account_exports.py`, `account_checks.py`: 账号资产展示、更新、导出和检测。
 - `tasks.py`, `task_commands.py`, `tasks_query.py`: 持久化任务创建、claim、执行、日志、取消和查询。
@@ -57,7 +57,7 @@
 
 ## 任务运行时
 
-`services/task_runtime.py` 提供单进程持久化任务调度：
+`src/services/task_runtime.py` 提供单进程持久化任务调度：
 
 - 默认 `max_parallel_tasks=3`。
 - 默认 `max_parallel_per_platform=1`。
@@ -86,7 +86,7 @@
 
 ## 认证与公开接口
 
-`core/auth.py` 使用简单 Bearer token/COOKIE 密码保护：
+`src/core/auth.py` 使用简单 Bearer token/COOKIE 密码保护：
 
 - 环境变量 `APP_PASSWORD` 为空时不要求登录。
 - 非空时，后台 API 请求需携带 `Authorization: Bearer <APP_PASSWORD>` 或 `_auth=<APP_PASSWORD>` cookie。
@@ -100,6 +100,6 @@
 ## Solver 和生命周期
 
 - `services.solver_manager` 管理本地 Turnstile Solver 子进程，端口默认由配置决定，Docker 暴露 `8889`。
-- `services/turnstile_solver/` 包含基于 Quart/patchright/Camoufox 的 Solver 子服务。
+- `src/services/turnstile_solver/` 包含基于 Quart/patchright/Camoufox 的 Solver 子服务。
 - `core.lifecycle.lifecycle_manager` 在主应用启动时运行，用于账号有效性检测、token 刷新和过期预警。
 - `core.scheduler.scheduler` 在启动时运行，为定时任务和后台检查提供基础调度能力。
