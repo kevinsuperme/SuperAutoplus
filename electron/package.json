@@ -5,7 +5,7 @@
   "main": "main.js",
   "scripts": {
     "dev": "electron .",
-    "build:backend": "bash build-backend.sh",
+    "build:backend": "node build-backend.mjs",
     "build:mac": "electron-builder --mac",
     "build:win": "electron-builder --win",
     "build:linux": "electron-builder --linux",
