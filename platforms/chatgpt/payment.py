@@ -6635,8 +6635,12 @@ def _poll_url_changed(
       * 超时 → 返回当前 URL（外层据此判断是否真离开）
     """
     deadline = time.monotonic() + max(int(timeout_ms or 30000), 1000) / 1000
-    interval = max(int(poll_interval_ms), 500) / 1000
-    while time.monotonic() <= deadline:
+    interval_ms = max(int(poll_interval_ms), 500)
+    interval = interval_ms / 1000
+    max_polls = max(int(max(int(timeout_ms or 30000), 1000) / interval_ms) + 1, 1)
+    for _ in range(max_polls):
+        if time.monotonic() > deadline:
+            break
         current_url = _current_page_url(page, initial_url)
         if current_url and current_url != initial_url:
             log(f"{label}已跳走: {current_url}")
