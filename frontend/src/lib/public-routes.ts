@@ -1,4 +1,4 @@
-const PUBLIC_CLIENT_ROUTES = new Set(["/pxl-plus", "/luckmail-code"]);
+const PUBLIC_CLIENT_ROUTES = new Set(["/pxl-plus", "/luckmail-code", "/converter"]);
 
 export function normalizePublicPath(pathname: string) {
   const path = String(pathname || "").trim() || "/";
