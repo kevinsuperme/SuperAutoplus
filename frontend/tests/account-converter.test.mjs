@@ -48,6 +48,8 @@ test("converts one sub2api account into one CPA download", async () => {
   );
 
   assert.equal(result.ok, true);
+  assert.deepEqual(result.warnings, []);
+  assert.notEqual(result.message, "");
   assert.equal(result.downloads.length, 1);
   assert.equal(result.downloads[0].filename, "user@example.com.json");
   assert.deepEqual(result.downloads[0].data, {
@@ -194,6 +196,16 @@ test("rejects unrecognizable CPA file", async () => {
   assert.equal(result.filename, "bad.json");
 });
 
+test("rejects empty CPA file selection", async () => {
+  const { buildCpaToSub2apiDownload } = await loadConverterModule();
+
+  const result = buildCpaToSub2apiDownload([], NOW);
+
+  assert.equal(result.ok, false);
+  assert.equal(result.code, "missing_file");
+  assert.equal(result.message, "请选择 CPA JSON 文件。");
+});
+
 test("masks long strings in previews", async () => {
   const { maskLongStrings } = await loadConverterModule();
 
@@ -209,7 +221,7 @@ test("masks long strings in previews", async () => {
 test("sanitizes unsafe file name characters", async () => {
   const { safeFileName } = await loadConverterModule();
 
-  assert.equal(safeFileName('bad\\\\/:*?"<>|name'), "bad_________name");
+  assert.equal(safeFileName('bad\\\\/:*?"<>|name'), "bad__________name");
 });
 
 test("builds a masked converter preview", async () => {
@@ -231,6 +243,9 @@ test("builds a masked converter preview", async () => {
 
   assert.equal(result.ok, true);
   assert.equal(result.count, 1);
+  assert.notEqual(result.title, "");
+  assert.deepEqual(result.warnings, []);
+  assert.notEqual(result.message, "");
   assert.equal(result.sample.将合并CPA文件数, 1);
   assert.equal(
     result.sample.sub2api结构示例.accounts[0].credentials.access_token,

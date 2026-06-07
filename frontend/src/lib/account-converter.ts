@@ -13,13 +13,17 @@ export type DownloadItem = {
 };
 
 export type ConverterErrorCode =
+  | "missing_file"
+  | "invalid_json"
   | "missing_accounts"
   | "empty_accounts"
-  | "invalid_cpa_file";
+  | "invalid_cpa_file"
+  | "conversion_failed";
 
 export type ConverterErrorResult = {
   ok: false;
   code: ConverterErrorCode;
+  message: string;
   filename?: string;
 };
 
@@ -27,6 +31,8 @@ export type DownloadResult =
   | {
       ok: true;
       downloads: DownloadItem[];
+      warnings: string[];
+      message: string;
     }
   | ConverterErrorResult;
 
@@ -34,7 +40,10 @@ export type PreviewResult =
   | {
       ok: true;
       count: number;
+      title: string;
       sample: unknown;
+      warnings: string[];
+      message: string;
     }
   | ConverterErrorResult;
 
@@ -73,6 +82,19 @@ function hasRecognizableCpaField(value: unknown) {
   return CPA_FIELDS.some((field) => Object.prototype.hasOwnProperty.call(value, field));
 }
 
+function errorResult(
+  code: ConverterErrorCode,
+  message: string,
+  filename?: string,
+): ConverterErrorResult {
+  return plainJson({
+    ok: false,
+    code,
+    message,
+    ...(filename ? { filename } : {}),
+  });
+}
+
 function getHostJson() {
   const hostFactory = (globalThis as GlobalWithTestModule).module?.constructor?.constructor;
   if (hostFactory) {
@@ -94,7 +116,7 @@ function plainJson<T>(value: T): T {
 }
 
 export function safeFileName(name: string) {
-  return name.replace(/\\+/g, "_").replace(/[/:*?"<>|]/g, "_");
+  return name.replace(/[\\/:*?"<>|]/g, "_");
 }
 
 export function toTimestampFilePart(isoValue: string) {
@@ -191,18 +213,22 @@ export function buildSub2apiToCpaDownloads(
   nowIso = new Date().toISOString(),
 ): DownloadResult {
   if (!isJsonObject(data) || !Array.isArray(data.accounts)) {
-    return { ok: false, code: "missing_accounts" };
+    return errorResult("missing_accounts", "sub2api JSON 必须包含 accounts 数组。");
   }
 
   if (data.accounts.length === 0) {
-    return { ok: false, code: "empty_accounts" };
+    return errorResult("empty_accounts", "sub2api JSON 中的 accounts 数组为空。");
   }
+
+  const downloads = data.accounts.map((account, index) =>
+    cpaFromSub2apiAccount(account, index + 1, nowIso),
+  );
 
   return plainJson({
     ok: true,
-    downloads: data.accounts.map((account, index) =>
-      cpaFromSub2apiAccount(account, index + 1, nowIso),
-    ),
+    downloads,
+    warnings: [],
+    message: `已生成 ${downloads.length} 个 CPA JSON 文件。`,
   });
 }
 
@@ -210,11 +236,19 @@ export function buildCpaToSub2apiDownload(
   inputs: NamedJsonInput[],
   nowIso = new Date().toISOString(),
 ): DownloadResult {
+  if (inputs.length === 0) {
+    return errorResult("missing_file", "请选择 CPA JSON 文件。");
+  }
+
   const accounts = [];
 
   for (const [index, input] of inputs.entries()) {
     if (!hasRecognizableCpaField(input.data)) {
-      return { ok: false, code: "invalid_cpa_file", filename: input.filename };
+      return errorResult(
+        "invalid_cpa_file",
+        `无法识别 ${input.filename || "CPA JSON 文件"}。`,
+        input.filename,
+      );
     }
 
     accounts.push(sub2apiAccountFromCpa(input.data, index + 1));
@@ -232,6 +266,8 @@ export function buildCpaToSub2apiDownload(
         },
       },
     ],
+    warnings: [],
+    message: `已合并 ${accounts.length} 个 CPA JSON 文件。`,
   });
 }
 
@@ -247,10 +283,13 @@ export function buildConverterPreview(
     return plainJson({
       ok: true,
       count: result.downloads.length,
+      title: "sub2api 转 CPA 预览",
       sample: maskLongStrings({
         "将生成CPA文件数": result.downloads.length,
         CPA文件示例: result.downloads[0]?.data ?? {},
       }),
+      warnings: [],
+      message: result.message,
     });
   }
 
@@ -260,9 +299,12 @@ export function buildConverterPreview(
   return plainJson({
     ok: true,
     count: inputs.length,
+    title: "CPA 转 sub2api 预览",
     sample: maskLongStrings({
       将合并CPA文件数: inputs.length,
       sub2api结构示例: result.downloads[0]?.data ?? {},
     }),
+    warnings: [],
+    message: result.message,
   });
 }
