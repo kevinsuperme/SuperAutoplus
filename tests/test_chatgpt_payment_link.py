@@ -4009,8 +4009,8 @@ def test_complete_paypal_checkout_uses_camoufox_and_submits(monkeypatch):
     assert any(event[0] == "locator" for event in page.events[:paypal_event_index])
     assert not any(event[0] in {"load_state", "wait_for_function", "wait_for_locator"} for event in page.events[:paypal_event_index])
     assert page.context.cookies[0]["name"] == "__Secure-next-auth.session-token"
-    assert any(event[0] == "fill" and event[2] == "Gul Bai" for event in page.events)
-    assert any(event[0] == "fill" and event[2] == "2798 Clover Drive" for event in page.events)
+    assert not any(event[0] == "fill" and event[2] == "Gul Bai" for event in page.events)
+    assert not any(event[0] == "fill" and event[2] == "2798 Clover Drive" for event in page.events)
     assert any(event[0] in {"click", "check"} and "paypal" in event[1].lower() for event in page.events)
     terms_index = next(
         index

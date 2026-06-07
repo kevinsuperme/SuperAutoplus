@@ -18,6 +18,10 @@ import {
   extractAccessTokenFromSessionText,
   maskAccessToken,
 } from "@/lib/session-token";
+import {
+  parseLuckMailTicketPreview,
+  resolveLuckMailDisplayEmail,
+} from "@/lib/luckmail-ticket";
 import { API, cn } from "@/lib/utils";
 
 type CodeResponse = {
@@ -31,31 +35,7 @@ type CodeResponse = {
 type StepKey = "parse" | "query" | "extract";
 type BannerTone = "neutral" | "loading" | "success" | "error";
 
-const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
-const TICKET_SEPARATOR = "----";
 const CHATGPT_SESSION_URL = "https://chatgpt.com/api/auth/session";
-
-function parseTicketPreview(value: string) {
-  const trimmed = value.trim();
-  const separatorIndex = trimmed.indexOf(TICKET_SEPARATOR);
-  if (separatorIndex < 0) {
-    return {
-      email: "",
-      token: trimmed,
-      valid: trimmed.length > 0 && !trimmed.includes("@") && !/\s/.test(trimmed),
-      tokenOnly: trimmed.length > 0,
-    };
-  }
-
-  const email = trimmed.slice(0, separatorIndex).trim();
-  const token = trimmed.slice(separatorIndex + TICKET_SEPARATOR.length).trim();
-  return {
-    email,
-    token,
-    valid: EMAIL_RE.test(email) && token.length > 0,
-    tokenOnly: false,
-  };
-}
 
 async function readCodeResponse(res: Response): Promise<CodeResponse> {
   const contentType = res.headers.get("content-type") || "";
@@ -81,8 +61,19 @@ export default function LuckMailCodeClient() {
   });
   const [activeStep, setActiveStep] = useState<StepKey | null>(null);
 
-  const preview = useMemo(() => parseTicketPreview(ticket), [ticket]);
+  const preview = useMemo(() => parseLuckMailTicketPreview(ticket), [ticket]);
+  const displayEmail = useMemo(
+    () => resolveLuckMailDisplayEmail(preview, result?.email),
+    [preview, result?.email],
+  );
   const tokenPreview = useMemo(() => maskAccessToken(accessToken), [accessToken]);
+
+  const updateTicket = (value: string) => {
+    setTicket(value);
+    setCopied(false);
+    setResult(null);
+    setActiveStep(value.trim() ? "parse" : null);
+  };
 
   const openSessionPage = () => {
     window.open(CHATGPT_SESSION_URL, "_blank", "noopener,noreferrer");
@@ -241,6 +232,34 @@ export default function LuckMailCodeClient() {
             </div>
 
             <form className="space-y-4" onSubmit={submit}>
+              <div>
+                <label
+                  htmlFor="luckmail-ticket"
+                  className="mb-1.5 block text-sm font-medium text-[var(--text-secondary)]"
+                >
+                  邮箱 Token 文本或单独 Token
+                </label>
+                <textarea
+                  id="luckmail-ticket"
+                  value={ticket}
+                  onChange={(event) => updateTicket(event.target.value)}
+                  placeholder="jadelee7905@outlook.com----tok_894d7778268489752c2c077e7ac6a603 或 tok_894d..."
+                  className="control-surface control-surface-mono min-h-28 w-full resize-y break-all"
+                  disabled={submitting}
+                  spellCheck={false}
+                  wrap="soft"
+                />
+              </div>
+
+              <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-pane)]/50 px-3 py-2.5 text-sm">
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-[var(--text-muted)]">邮箱名称</span>
+                  <span className="min-w-0 truncate font-mono text-[var(--text-secondary)]">
+                    {displayEmail}
+                  </span>
+                </div>
+              </div>
+
               <div className="min-w-0 max-w-full overflow-hidden rounded-xl border border-sky-500/25 bg-sky-500/10 p-3">
                 <div className="mb-3 flex items-center justify-between gap-3">
                   <label
@@ -288,34 +307,6 @@ export default function LuckMailCodeClient() {
                     <ClipboardPaste className="mr-1.5 h-3.5 w-3.5" />
                     从剪贴板填入
                   </Button>
-                </div>
-              </div>
-
-              <div>
-                <label
-                  htmlFor="luckmail-ticket"
-                  className="mb-1.5 block text-sm font-medium text-[var(--text-secondary)]"
-                >
-                  邮箱 Token 文本或单独 Token
-                </label>
-                <textarea
-                  id="luckmail-ticket"
-                  value={ticket}
-                  onChange={(event) => setTicket(event.target.value)}
-                  placeholder="jadelee7905@outlook.com----tok_894d7778268489752c2c077e7ac6a603 或 tok_894d..."
-                  className="control-surface control-surface-mono min-h-28 w-full resize-y break-all"
-                  disabled={submitting}
-                  spellCheck={false}
-                  wrap="soft"
-                />
-              </div>
-
-              <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-pane)]/50 px-3 py-2.5 text-sm">
-                <div className="flex items-center justify-between gap-3">
-                  <span className="text-[var(--text-muted)]">已解析邮箱</span>
-                  <span className="min-w-0 truncate font-mono text-[var(--text-secondary)]">
-                    {preview.email || (preview.tokenOnly ? "提交后识别邮箱" : "-")}
-                  </span>
                 </div>
               </div>
 

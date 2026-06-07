@@ -15,4 +15,5 @@ from core.base_sms import (  # noqa: F401 – re-exports
 )
 from providers.registry import register_provider
 
+register_provider("sms", "herosms")(HeroSmsProvider)
 register_provider("sms", "herosms_api")(HeroSmsProvider)

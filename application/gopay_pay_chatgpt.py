@@ -22,6 +22,7 @@ from __future__ import annotations
 
 import os
 import re
+import inspect
 import threading
 import time
 from typing import Any, Callable, Optional
@@ -36,6 +37,21 @@ _MIDTRANS_URL_RE = re.compile(
     r"https?://app\.midtrans\.com/snap/v[34]/redirection/[0-9a-f-]{36}",
     re.IGNORECASE,
 )
+
+
+def _call_with_supported_kwargs(fn, *args, **kwargs):
+    try:
+        signature = inspect.signature(fn)
+    except (TypeError, ValueError):
+        return fn(*args, **kwargs)
+    if any(param.kind is inspect.Parameter.VAR_KEYWORD for param in signature.parameters.values()):
+        return fn(*args, **kwargs)
+    allowed = {
+        name
+        for name, param in signature.parameters.items()
+        if param.kind in (inspect.Parameter.POSITIONAL_OR_KEYWORD, inspect.Parameter.KEYWORD_ONLY)
+    }
+    return fn(*args, **{key: value for key, value in kwargs.items() if key in allowed})
 
 
 def _mask_proxy(proxy: str | None) -> str:
@@ -852,7 +868,8 @@ def step_grab_midtrans_url(
         f"浏览器抓 midtrans（mode={checkout_mode} -> backend={backend_config.backend}/"
         f"{backend_config.window_mode}）"
     )
-    return chatgpt_payment.select_gopay_and_grab_midtrans(
+    return _call_with_supported_kwargs(
+        chatgpt_payment.select_gopay_and_grab_midtrans,
         cashier_url,
         backend_config=backend_config,
         proxy=proxy,

@@ -15,6 +15,7 @@ import {
 import { Button } from "@/components/ui/button";
 import {
   extractAccessTokenFromSessionText,
+  extractEmailFromSessionText,
   maskAccessToken,
 } from "@/lib/session-token";
 import { API, cn } from "@/lib/utils";
@@ -83,6 +84,7 @@ async function readOpenResponse(res: Response): Promise<ClientOpenResponse> {
 export default function PxlPlusClient() {
   const [ckd, setCkd] = useState("");
   const [credential, setCredential] = useState("");
+  const [sessionEmail, setSessionEmail] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [copied, setCopied] = useState(false);
   const [result, setResult] = useState<ClientOpenResponse | null>(null);
@@ -124,6 +126,7 @@ export default function PxlPlusClient() {
         return;
       }
       setCredential(token);
+      setSessionEmail(extractEmailFromSessionText(clipboardText));
       setBanner({
         tone: "success",
         message: "Access Token 已填入页面。",
@@ -143,6 +146,7 @@ export default function PxlPlusClient() {
 
     event.preventDefault();
     setCredential(token);
+    setSessionEmail(extractEmailFromSessionText(clipboardText));
     setBanner({
       tone: "success",
       message: "Access Token 已从粘贴内容中提取。",
@@ -182,6 +186,7 @@ export default function PxlPlusClient() {
         body: JSON.stringify({
           ckd: trimmedCkd,
           credential: trimmedCredential,
+          email: sessionEmail.trim(),
         }),
       });
       const data = await readOpenResponse(response);
@@ -220,6 +225,16 @@ export default function PxlPlusClient() {
     await navigator.clipboard?.writeText(result.pix_qr_data);
     setCopied(true);
     window.setTimeout(() => setCopied(false), 1600);
+  };
+
+  const copyAccessToken = async () => {
+    const token = credential.trim();
+    if (!token) return;
+    await navigator.clipboard?.writeText(token);
+    setBanner({
+      tone: "success",
+      message: "完整 Access Token 已复制。",
+    });
   };
 
   return (
@@ -288,23 +303,44 @@ export default function PxlPlusClient() {
 
               <div className="min-w-0 max-w-full overflow-hidden rounded-xl border border-sky-500/25 bg-sky-500/10 p-3">
                 <div className="mb-3 flex items-center justify-between gap-3">
-                  <label
-                    htmlFor="pxl-client-credential"
-                    className="flex min-w-0 items-center gap-2 text-sm font-medium text-sky-700 dark:text-sky-200"
+                  <div className="flex min-w-0 items-center gap-2">
+                    <label
+                      htmlFor="pxl-client-credential"
+                      className="flex min-w-0 items-center gap-2 text-sm font-medium text-sky-700 dark:text-sky-200"
+                    >
+                      <KeyRound className="h-4 w-4 shrink-0 text-sky-600 dark:text-sky-300" />
+                      <span className="truncate">完整 Access Token</span>
+                    </label>
+                    {tokenPreview ? (
+                      <span className="hidden max-w-[128px] truncate font-mono text-xs text-[var(--text-muted)] sm:inline">
+                        {tokenPreview}
+                      </span>
+                    ) : null}
+                  </div>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={copyAccessToken}
+                    disabled={!credential.trim() || submitting}
+                    className="h-7 shrink-0 px-2 text-sky-700 dark:text-sky-200"
                   >
-                    <KeyRound className="h-4 w-4 shrink-0 text-sky-600 dark:text-sky-300" />
-                    <span className="truncate">ChatGPT Access Token</span>
-                  </label>
-                  {tokenPreview ? (
-                    <span className="max-w-[148px] truncate font-mono text-xs text-[var(--text-muted)]">
-                      {tokenPreview}
-                    </span>
-                  ) : null}
+                    <Copy className="mr-1 h-3.5 w-3.5" />
+                    复制
+                  </Button>
                 </div>
+                {sessionEmail ? (
+                  <div className="mb-2 rounded-lg border border-sky-500/20 bg-sky-500/10 px-3 py-2 font-mono text-xs text-sky-700 dark:text-sky-200">
+                    {sessionEmail}
+                  </div>
+                ) : null}
                 <textarea
                   id="pxl-client-credential"
                   value={credential}
-                  onChange={(event) => setCredential(event.target.value)}
+                  onChange={(event) => {
+                    setCredential(event.target.value);
+                    setSessionEmail("");
+                  }}
                   onPaste={pasteAccessTokenText}
                   placeholder="从 ChatGPT Session JSON 自动填入或粘贴完整 token"
                   className="control-surface control-surface-mono min-h-28 w-full resize-y break-all"

@@ -2,9 +2,11 @@ from __future__ import annotations
 
 from sqlmodel import Session, select
 
+from application.accounts import AccountsService
 from application.pix_gpt_plus import PixGptPlusService
 from core.account_graph import patch_account_graph
 from core.db import AccountCredentialModel, AccountModel, engine
+from domain.accounts import AccountQuery
 
 
 def _seed_chatgpt_account(*, email: str = "pix@example.com", token: str = "ac_token_x") -> int:
@@ -266,6 +268,47 @@ def test_client_open_saves_customer_token_as_chatgpt_account(monkeypatch):
         assert credential.source == "pxl-plus-client"
 
 
+def test_client_open_uses_submitted_email_when_raw_token_has_no_session_email(monkeypatch):
+    _without_stored_pix_client_codes(monkeypatch)
+    monkeypatch.setenv("PIX_CLIENT_CKD_CODES", "CKD-EMAIL")
+
+    def fake_call(self, *, endpoint_path: str, body: dict) -> dict:  # noqa: ANN001
+        return {
+            "ok": True,
+            "reason": "ok",
+            "mode": "short_emv",
+            "pix_qr_data": "000201EMAIL",
+            "request_id": "req_email",
+        }
+
+    monkeypatch.setattr(PixGptPlusService, "_call_remote_pix", fake_call)
+
+    result = PixGptPlusService().generate_for_client_token(
+        {
+            "ckd": "CKD-EMAIL",
+            "credential": "ac_raw_customer_token",
+            "email": "raw-token-client@example.com",
+        }
+    )
+
+    assert result["ok"] is True
+    assert result["email"] == "raw-token-client@example.com"
+
+    with Session(engine) as session:
+        account = session.get(AccountModel, result["account_id"])
+        assert account is not None
+        assert account.email == "raw-token-client@example.com"
+
+        credential = session.exec(
+            select(AccountCredentialModel).where(
+                AccountCredentialModel.account_id == result["account_id"],
+                AccountCredentialModel.key == "access_token",
+            )
+        ).first()
+        assert credential is not None
+        assert credential.value == "ac_raw_customer_token"
+
+
 def test_client_open_updates_existing_customer_token_account(monkeypatch):
     _without_stored_pix_client_codes(monkeypatch)
     monkeypatch.setenv("PIX_CLIENT_CKD_CODES", "CKD-UP")
@@ -311,6 +354,45 @@ def test_client_open_updates_existing_customer_token_account(monkeypatch):
         ).all()
         assert len(credentials) == 1
         assert credentials[0].value == "ac_new_customer_token"
+
+
+def test_client_open_account_list_exposes_full_token_for_admin_pix_page(monkeypatch):
+    _without_stored_pix_client_codes(monkeypatch)
+    monkeypatch.setenv("PIX_CLIENT_CKD_CODES", "CKD-LIST")
+
+    def fake_call(self, *, endpoint_path: str, body: dict) -> dict:  # noqa: ANN001
+        return {
+            "ok": True,
+            "reason": "ok",
+            "mode": "short_emv",
+            "pix_qr_data": "000201LIST",
+            "request_id": "req_list",
+        }
+
+    monkeypatch.setattr(PixGptPlusService, "_call_remote_pix", fake_call)
+
+    PixGptPlusService().generate_for_client_token(
+        {
+            "ckd": "CKD-LIST",
+            "credential": (
+                '{"user":{"email":"list@example.com"},'
+                '"accessToken":"ac_full_list_token"}'
+            ),
+        }
+    )
+
+    listed = AccountsService().list_accounts(
+        AccountQuery(platform="chatgpt", email="list@example.com", page=1, page_size=20)
+    )
+    item = listed["items"][0]
+
+    assert item["primary_token"] == "ac_full_list_token"
+    assert any(
+        credential["key"] == "access_token"
+        and credential["value"] == "ac_full_list_token"
+        and credential["source"] == "pxl-plus-client"
+        for credential in item["credentials"]
+    )
 
 
 def test_client_open_rejects_missing_ckd_configuration(monkeypatch):
@@ -491,4 +573,5 @@ def test_pix_client_open_endpoint_is_public_with_ckd(monkeypatch):
     assert captured["payload"] == {
         "ckd": "CKD-OK",
         "credential": "ac_customer_token",
+        "email": "",
     }

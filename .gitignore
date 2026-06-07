@@ -76,9 +76,6 @@ data/
 .env
 .env.local
 
-# 文档
-docs/
-
 # macOS
 .DS_Store
 
@@ -94,7 +91,6 @@ AGENTS.md
 .superpowers/
 .trellis/
 .windsurf/
-docs/REFACTOR-PLAN.md
 
 # 敏感文件
 *.har

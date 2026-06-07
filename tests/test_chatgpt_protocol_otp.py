@@ -16,7 +16,7 @@ class _FakeSession:
     def __init__(self):
         self.posts = []
 
-    def post(self, url, headers=None, data=None):
+    def post(self, url, headers=None, data=None, **kwargs):
         self.posts.append((url, headers or {}, data))
         return _JsonResponse()
 

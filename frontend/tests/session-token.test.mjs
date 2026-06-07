@@ -34,6 +34,17 @@ test("extracts accessToken from ChatGPT session JSON", async () => {
   );
 });
 
+test("extracts email from ChatGPT session JSON", async () => {
+  const { extractEmailFromSessionText } = await loadSessionTokenModule();
+
+  assert.equal(
+    extractEmailFromSessionText(
+      JSON.stringify({ user: { email: "user@example.com" }, accessToken: "ac_json_token" }),
+    ),
+    "user@example.com",
+  );
+});
+
 test("extracts nested access_token from session-like JSON", async () => {
   const { extractAccessTokenFromSessionText } = await loadSessionTokenModule();
 

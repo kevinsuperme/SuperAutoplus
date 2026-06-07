@@ -502,7 +502,7 @@ _BUILTIN_DEFINITIONS: list[dict] = [
     # ── sms ──────────────────────────────────────────────────────────
     {
         "provider_type": "sms",
-        "provider_key": "herosms_api",
+        "provider_key": "herosms",
         "label": "HeroSMS",
         "description": "HeroSMS 接码平台，支持号码复用和自动重发",
         "driver_type": "herosms_api",

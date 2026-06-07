@@ -20,6 +20,7 @@ class PixGptPlusGenerateRequest(BaseModel):
 class PixGptPlusClientOpenRequest(BaseModel):
     ckd: str = ""
     credential: str = ""
+    email: str = ""
 
 
 @router.post("/generate")

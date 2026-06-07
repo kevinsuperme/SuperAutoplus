@@ -13,6 +13,7 @@ _tmp = tempfile.NamedTemporaryFile(suffix=".db", delete=False)
 _tmp.close()
 _TEST_DB_PATH = _tmp.name
 os.environ["ACCOUNT_MANAGER_DATABASE_URL"] = f"sqlite:///{_TEST_DB_PATH}"
+os.environ.setdefault("ACCOUNT_MANAGER_DISABLE_SOLVER", "1")
 
 import pytest
 from sqlmodel import SQLModel, create_engine
@@ -32,6 +33,9 @@ def _reset_db():
     """Drop and recreate all tables between tests for full isolation."""
     SQLModel.metadata.drop_all(_db_module.engine)
     SQLModel.metadata.create_all(_db_module.engine)
+    from infrastructure.provider_definitions_repository import ProviderDefinitionsRepository
+
+    ProviderDefinitionsRepository().ensure_seeded()
     yield
 
 

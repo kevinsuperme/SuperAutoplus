@@ -98,10 +98,6 @@ function getCashierUrl(acc: AccountRow): string {
   return acc.cashier_url || acc.overview?.cashier_url || "";
 }
 
-function hasToken(acc: AccountRow): boolean {
-  return Boolean(getAccessToken(acc));
-}
-
 function getAccessToken(acc: AccountRow): string {
   const credentialToken =
     acc.credentials?.find((item) => item.key === "access_token")?.value ||
@@ -529,7 +525,7 @@ export default function PixGptPlus() {
                 <th className="px-3 py-2">套餐</th>
                 <th className="px-3 py-2">生命周期</th>
                 <th className="px-3 py-2">来源</th>
-                <th className="min-w-[360px] px-3 py-2">Access Token</th>
+                <th className="min-w-[360px] px-3 py-2">完整 Access Token</th>
                 <th className="px-3 py-2">cashier_url</th>
               </tr>
             </thead>
@@ -597,7 +593,7 @@ export default function PixGptPlus() {
                             onClick={() => copyText(accessToken, "Access Token")}
                           >
                             <Copy className="mr-1 h-3.5 w-3.5" />
-                            复制
+                            复制完整
                           </Button>
                         </div>
                       ) : (

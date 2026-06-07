@@ -20,6 +20,15 @@ _MAX_CONSECUTIVE_FAILURES = 3
 _last_failure_reason = ""
 
 
+def _solver_disabled() -> bool:
+    return os.environ.get("ACCOUNT_MANAGER_DISABLE_SOLVER", "").strip().lower() in {
+        "1",
+        "true",
+        "yes",
+        "on",
+    }
+
+
 def _get_browser_type() -> str:
     browser_type = os.environ.get("SOLVER_BROWSER_TYPE", DEFAULT_BROWSER_TYPE).strip().lower()
     if browser_type in SUPPORTED_BROWSER_TYPES:
@@ -82,6 +91,9 @@ def _ensure_camoufox_browser() -> bool:
 
 def start():
     global _proc, _consecutive_failures, _last_failure_reason
+    if _solver_disabled():
+        print("[Solver] 已禁用，跳过启动")
+        return
     with _lock:
         if is_running():
             print("[Solver] 已在运行")
@@ -236,5 +248,8 @@ def restart():
 
 def start_async():
     """在后台线程启动，不阻塞主进程"""
+    if _solver_disabled():
+        print("[Solver] 已禁用，跳过异步启动")
+        return
     t = threading.Thread(target=start, daemon=True)
     t.start()

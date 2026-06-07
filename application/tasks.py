@@ -795,6 +795,8 @@ def _resolve_sms_provider_for_task(extra: dict[str, Any]) -> tuple[str, dict[str
         or settings_repo.get_default_provider_key("sms")
         or ""
     ).strip()
+    if provider_key == "herosms_api":
+        provider_key = "herosms"
     if not provider_key:
         provider_key = "sms_activate" if extra.get("sms_activate_api_key") else ""
     definition = definitions_repo.get_by_key("sms", provider_key) if provider_key else None

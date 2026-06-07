@@ -1,6 +1,7 @@
 """Windsurf 平台插件。"""
 from __future__ import annotations
 
+import inspect
 import random
 
 from core.base_mailbox import BaseMailbox
@@ -30,6 +31,21 @@ def _default_name(email: str) -> str:
     if cleaned:
         return " ".join(part.capitalize() for part in cleaned.split()[:2])
     return "Windsurf User"
+
+
+def _call_with_supported_kwargs(fn, *args, **kwargs):
+    try:
+        signature = inspect.signature(fn)
+    except (TypeError, ValueError):
+        return fn(*args, **kwargs)
+    if any(param.kind is inspect.Parameter.VAR_KEYWORD for param in signature.parameters.values()):
+        return fn(*args, **kwargs)
+    allowed = {
+        name
+        for name, param in signature.parameters.items()
+        if param.kind in (inspect.Parameter.POSITIONAL_OR_KEYWORD, inspect.Parameter.KEYWORD_ONLY)
+    }
+    return fn(*args, **{key: value for key, value in kwargs.items() if key in allowed})
 
 
 @register
@@ -71,6 +87,14 @@ class WindsurfPlatform(BasePlatform):
     def __init__(self, config: RegisterConfig = None, mailbox: BaseMailbox = None):
         super().__init__(config)
         self.mailbox = mailbox
+
+    def execute_action(self, action_id: str, account: Account, params: dict) -> dict:
+        aliases = {
+            "generate_trial_link": "generate_link",
+            "payment_link": "generate_link",
+            "payment_link_browser": "generate_link_browser",
+        }
+        return super().execute_action(aliases.get(action_id, action_id), account, params)
 
     def _map_windsurf_result(self, result: dict) -> RegistrationResult:
         overview = dict(result.get("account_overview") or {})
@@ -313,7 +337,8 @@ class WindsurfPlatform(BasePlatform):
 
         refreshed_auth: dict[str, str] = {}
         try:
-            checkout = client.subscribe_to_plan(
+            checkout = _call_with_supported_kwargs(
+                client.subscribe_to_plan,
                 context["session_token"],
                 account_id=context["account_id"],
                 org_id=context["org_id"],
@@ -342,7 +367,8 @@ class WindsurfPlatform(BasePlatform):
                     self.log(f"Password login also failed: {login_exc}")
             if not refreshed_auth.get("session_token"):
                 raise RuntimeError(f"Windsurf session refresh failed, original error: {exc}") from exc
-            checkout = client.subscribe_to_plan(
+            checkout = _call_with_supported_kwargs(
+                client.subscribe_to_plan,
                 refreshed_auth["session_token"],
                 account_id=refreshed_auth.get("account_id", "") or context["account_id"],
                 org_id=refreshed_auth.get("org_id", "") or context["org_id"],

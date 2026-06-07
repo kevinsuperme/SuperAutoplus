@@ -1,0 +1,686 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>CPA / sub2api 格式转换工具</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --panel: rgba(255, 255, 255, 0.08);
+      --panel-strong: rgba(255, 255, 255, 0.12);
+      --line: rgba(255, 255, 255, 0.14);
+      --text: #f8fafc;
+      --muted: #94a3b8;
+      --primary: #38bdf8;
+      --primary-strong: #0ea5e9;
+      --success: #22c55e;
+      --warning: #f59e0b;
+      --danger: #fb7185;
+      --shadow: 0 24px 80px rgba(0, 0, 0, 0.35);
+      --radius-lg: 28px;
+      --radius-md: 18px;
+      --radius-sm: 12px;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top left, rgba(56, 189, 248, 0.28), transparent 34rem),
+        radial-gradient(circle at 88% 12%, rgba(168, 85, 247, 0.24), transparent 28rem),
+        linear-gradient(135deg, #020617 0%, #0f172a 52%, #111827 100%);
+    }
+
+    button, input, select { font: inherit; }
+
+    .page {
+      width: min(1120px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 48px 0;
+    }
+
+    .hero {
+      display: grid;
+      grid-template-columns: 1.2fr 0.8fr;
+      gap: 24px;
+      align-items: stretch;
+      margin-bottom: 24px;
+    }
+
+    .hero-card,
+    .tool-card,
+    .preview-card {
+      border: 1px solid var(--line);
+      background: linear-gradient(180deg, var(--panel-strong), var(--panel));
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(18px);
+    }
+
+    .hero-card {
+      position: relative;
+      overflow: hidden;
+      border-radius: var(--radius-lg);
+      padding: 36px;
+    }
+
+    .hero-card::after {
+      content: "";
+      position: absolute;
+      right: -120px;
+      bottom: -140px;
+      width: 320px;
+      height: 320px;
+      border-radius: 999px;
+      background: rgba(56, 189, 248, 0.18);
+      filter: blur(8px);
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      border: 1px solid rgba(56, 189, 248, 0.32);
+      border-radius: 999px;
+      color: #bae6fd;
+      background: rgba(14, 165, 233, 0.12);
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    h1 {
+      position: relative;
+      z-index: 1;
+      margin: 18px 0 12px;
+      font-size: clamp(32px, 5vw, 56px);
+      line-height: 1.02;
+      letter-spacing: -0.05em;
+    }
+
+    .hero-card p {
+      position: relative;
+      z-index: 1;
+      max-width: 660px;
+      margin: 0;
+      color: var(--muted);
+      font-size: 16px;
+      line-height: 1.8;
+    }
+
+    .stats {
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      display: grid;
+      gap: 14px;
+    }
+
+    .stat {
+      padding: 18px;
+      border-radius: var(--radius-md);
+      background: rgba(15, 23, 42, 0.46);
+      border: 1px solid var(--line);
+    }
+
+    .stat strong {
+      display: block;
+      margin-bottom: 6px;
+      font-size: 26px;
+      letter-spacing: -0.03em;
+    }
+
+    .stat span {
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .workspace {
+      display: grid;
+      grid-template-columns: 420px 1fr;
+      gap: 24px;
+      align-items: start;
+    }
+
+    .tool-card,
+    .preview-card {
+      border-radius: var(--radius-lg);
+      padding: 24px;
+    }
+
+    .section-title {
+      margin: 0 0 16px;
+      font-size: 18px;
+      letter-spacing: -0.02em;
+    }
+
+    .mode-grid {
+      display: grid;
+      gap: 12px;
+      margin-bottom: 22px;
+    }
+
+    .mode-option {
+      display: flex;
+      gap: 14px;
+      align-items: center;
+      padding: 16px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius-md);
+      background: rgba(15, 23, 42, 0.38);
+      cursor: pointer;
+      transition: 0.18s ease;
+    }
+
+    .mode-option:hover,
+    .mode-option.active {
+      border-color: rgba(56, 189, 248, 0.55);
+      background: rgba(14, 165, 233, 0.14);
+      transform: translateY(-1px);
+    }
+
+    .mode-icon {
+      display: grid;
+      place-items: center;
+      width: 44px;
+      height: 44px;
+      border-radius: 14px;
+      color: #e0f2fe;
+      background: linear-gradient(135deg, var(--primary), #8b5cf6);
+      font-weight: 900;
+    }
+
+    .mode-option strong { display: block; margin-bottom: 4px; }
+    .mode-option span { color: var(--muted); font-size: 13px; line-height: 1.5; }
+    .mode-option input { display: none; }
+
+    .dropzone {
+      position: relative;
+      display: grid;
+      place-items: center;
+      min-height: 190px;
+      padding: 24px;
+      border: 1.5px dashed rgba(148, 163, 184, 0.42);
+      border-radius: var(--radius-lg);
+      background: rgba(15, 23, 42, 0.36);
+      text-align: center;
+      cursor: pointer;
+      transition: 0.18s ease;
+    }
+
+    .dropzone:hover,
+    .dropzone.dragging {
+      border-color: var(--primary);
+      background: rgba(14, 165, 233, 0.12);
+    }
+
+    .dropzone input {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      cursor: pointer;
+    }
+
+    .upload-icon {
+      width: 62px;
+      height: 62px;
+      margin: 0 auto 14px;
+      border-radius: 20px;
+      display: grid;
+      place-items: center;
+      color: #082f49;
+      background: #bae6fd;
+      font-size: 28px;
+      font-weight: 900;
+    }
+
+    .dropzone strong { display: block; margin-bottom: 8px; }
+    .dropzone span { color: var(--muted); font-size: 13px; line-height: 1.6; }
+
+    .file-list {
+      display: grid;
+      gap: 8px;
+      margin: 16px 0 0;
+      padding: 0;
+      list-style: none;
+      max-height: 150px;
+      overflow: auto;
+    }
+
+    .file-list li {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 10px 12px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius-sm);
+      background: rgba(15, 23, 42, 0.4);
+      color: #cbd5e1;
+      font-size: 13px;
+    }
+
+    .actions {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 10px;
+      margin-top: 18px;
+    }
+
+    .btn {
+      border: 0;
+      border-radius: 16px;
+      padding: 14px 18px;
+      color: #06121f;
+      background: linear-gradient(135deg, #7dd3fc, #38bdf8 45%, #818cf8);
+      font-weight: 900;
+      cursor: pointer;
+      box-shadow: 0 12px 30px rgba(56, 189, 248, 0.24);
+      transition: 0.18s ease;
+    }
+
+    .btn:hover { transform: translateY(-1px); filter: brightness(1.04); }
+    .btn:disabled { cursor: not-allowed; opacity: 0.5; transform: none; }
+
+    .btn-secondary {
+      color: var(--text);
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid var(--line);
+      box-shadow: none;
+    }
+
+    .notice {
+      margin-top: 14px;
+      padding: 12px 14px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--line);
+      color: #cbd5e1;
+      background: rgba(15, 23, 42, 0.42);
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
+    .notice.success { border-color: rgba(34, 197, 94, 0.45); color: #bbf7d0; background: rgba(34, 197, 94, 0.1); }
+    .notice.error { border-color: rgba(251, 113, 133, 0.5); color: #fecdd3; background: rgba(251, 113, 133, 0.1); }
+    .notice.warning { border-color: rgba(245, 158, 11, 0.5); color: #fde68a; background: rgba(245, 158, 11, 0.1); }
+
+    .preview-header {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+
+    .preview-header p {
+      margin: 4px 0 0;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .pill {
+      padding: 8px 11px;
+      border-radius: 999px;
+      background: rgba(34, 197, 94, 0.12);
+      color: #bbf7d0;
+      border: 1px solid rgba(34, 197, 94, 0.25);
+      font-size: 12px;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+
+    pre {
+      min-height: 440px;
+      max-height: 560px;
+      margin: 0;
+      padding: 18px;
+      overflow: auto;
+      border: 1px solid var(--line);
+      border-radius: var(--radius-md);
+      background: rgba(2, 6, 23, 0.62);
+      color: #dbeafe;
+      font-size: 12px;
+      line-height: 1.7;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .footer-note {
+      margin-top: 18px;
+      color: var(--muted);
+      font-size: 12px;
+      text-align: center;
+    }
+
+    @media (max-width: 900px) {
+      .hero,
+      .workspace { grid-template-columns: 1fr; }
+      .page { padding: 24px 0; }
+      .hero-card { padding: 28px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <section class="hero">
+      <div class="hero-card">
+        <div class="badge">本地转换 · 不上传文件</div>
+        <h1>CPA / sub2api<br />格式转换工具</h1>
+        <p>支持 sub2api 批量拆分为 CPA 文件，也支持选择多个 CPA 文件合并为 sub2api 导出。所有解析和转换都在当前浏览器本地完成。</p>
+      </div>
+      <div class="stats hero-card">
+        <div class="stat">
+          <strong>2 种</strong>
+          <span>CPA ↔ sub2api 双向转换</span>
+        </div>
+        <div class="stat">
+          <strong>0 上传</strong>
+          <span>文件不会离开你的电脑</span>
+        </div>
+        <div class="stat">
+          <strong>批量</strong>
+          <span>多个 CPA 文件可一次合并</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="workspace">
+      <div class="tool-card">
+        <h2 class="section-title">选择转换方式</h2>
+        <div class="mode-grid" id="modeGrid">
+          <label class="mode-option active">
+            <input type="radio" name="mode" value="sub2api-to-cpa" checked />
+            <div class="mode-icon">S→C</div>
+            <div>
+              <strong>sub2api 转 CPA</strong>
+              <span>选择一个 sub2api JSON，按账号拆成多个 CPA JSON 下载。</span>
+            </div>
+          </label>
+          <label class="mode-option">
+            <input type="radio" name="mode" value="cpa-to-sub2api" />
+            <div class="mode-icon">C→S</div>
+            <div>
+              <strong>CPA 转 sub2api</strong>
+              <span>选择一个或多个 CPA JSON，合并成一个 sub2api JSON 下载。</span>
+            </div>
+          </label>
+        </div>
+
+        <label class="dropzone" id="dropzone">
+          <input id="fileInput" type="file" accept=".json,application/json" />
+          <div>
+            <div class="upload-icon">↑</div>
+            <strong id="dropTitle">点击选择 sub2api JSON</strong>
+            <span id="dropHint">也可以把文件拖到这里；当前模式只需要选择 1 个文件。</span>
+          </div>
+        </label>
+
+        <ul class="file-list" id="fileList"></ul>
+
+        <div class="actions">
+          <button class="btn" id="convertBtn" disabled>开始转换并下载</button>
+          <button class="btn btn-secondary" id="clearBtn" type="button">清空</button>
+        </div>
+
+        <div class="notice" id="notice">请选择转换方式和 JSON 文件。</div>
+      </div>
+
+      <div class="preview-card">
+        <div class="preview-header">
+          <div>
+            <h2 class="section-title" style="margin-bottom:0">转换预览</h2>
+            <p>这里只展示结构预览，长 token 会被省略。</p>
+          </div>
+          <div class="pill" id="statusPill">等待文件</div>
+        </div>
+        <pre id="preview">{
+  "提示": "选择文件后会在这里显示预览"
+}</pre>
+      </div>
+    </section>
+
+    <div class="footer-note">保存为 converter.html 后，双击即可离线使用。</div>
+  </main>
+
+  <script>
+    const modeGrid = document.getElementById('modeGrid');
+    const fileInput = document.getElementById('fileInput');
+    const dropzone = document.getElementById('dropzone');
+    const dropTitle = document.getElementById('dropTitle');
+    const dropHint = document.getElementById('dropHint');
+    const fileList = document.getElementById('fileList');
+    const convertBtn = document.getElementById('convertBtn');
+    const clearBtn = document.getElementById('clearBtn');
+    const notice = document.getElementById('notice');
+    const preview = document.getElementById('preview');
+    const statusPill = document.getElementById('statusPill');
+
+    let selectedFiles = [];
+
+    function getMode() {
+      return document.querySelector('input[name="mode"]:checked').value;
+    }
+
+    function setNotice(message, type = '') {
+      notice.className = `notice ${type}`.trim();
+      notice.textContent = message;
+    }
+
+    function updateModeUi() {
+      document.querySelectorAll('.mode-option').forEach(label => {
+        label.classList.toggle('active', label.querySelector('input').checked);
+      });
+
+      const isSubToCpa = getMode() === 'sub2api-to-cpa';
+      fileInput.multiple = !isSubToCpa;
+      dropTitle.textContent = isSubToCpa ? '点击选择 sub2api JSON' : '点击选择 CPA JSON 文件';
+      dropHint.textContent = isSubToCpa
+        ? '也可以把文件拖到这里；当前模式只需要选择 1 个文件。'
+        : '也可以把多个 CPA JSON 拖到这里；支持批量合并。';
+      clearFiles();
+    }
+
+    function clearFiles() {
+      selectedFiles = [];
+      fileInput.value = '';
+      renderFileList();
+      convertBtn.disabled = true;
+      statusPill.textContent = '等待文件';
+      preview.textContent = JSON.stringify({ 提示: '选择文件后会在这里显示预览' }, null, 2);
+      setNotice('请选择转换方式和 JSON 文件。');
+    }
+
+    function renderFileList() {
+      fileList.innerHTML = '';
+      selectedFiles.forEach(file => {
+        const li = document.createElement('li');
+        li.innerHTML = `<span>${escapeHtml(file.name)}</span><span>${formatBytes(file.size)}</span>`;
+        fileList.appendChild(li);
+      });
+    }
+
+    function formatBytes(bytes) {
+      if (bytes < 1024) return `${bytes} B`;
+      if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+      return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+    }
+
+    function escapeHtml(value) {
+      return String(value).replace(/[&<>'"]/g, char => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
+      }[char]));
+    }
+
+    function safeFileName(name) {
+      return String(name || 'account').replace(/[\\/:*?"<>|]/g, '_');
+    }
+
+    function maskLongStrings(value) {
+      if (Array.isArray(value)) return value.map(maskLongStrings);
+      if (value && typeof value === 'object') {
+        return Object.fromEntries(Object.entries(value).map(([key, item]) => [key, maskLongStrings(item)]));
+      }
+      if (typeof value === 'string' && value.length > 90) return `${value.slice(0, 38)}...${value.slice(-18)}`;
+      return value;
+    }
+
+    function readJsonFile(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          try {
+            resolve(JSON.parse(reader.result));
+          } catch (error) {
+            reject(new Error(`${file.name} 不是有效 JSON：${error.message}`));
+          }
+        };
+        reader.onerror = () => reject(new Error(`${file.name} 读取失败`));
+        reader.readAsText(file, 'utf-8');
+      });
+    }
+
+    function downloadJson(filename, data) {
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }
+
+    function cpaFromSub2apiAccount(account, index) {
+      const c = account.credentials || {};
+      const email = c.email || account.name || `account-${index + 1}`;
+      return {
+        type: 'codex',
+        email,
+        expired: c.expires_at || '',
+        id_token: c.id_token || '',
+        account_id: c.organization_id || '',
+        access_token: c.access_token || '',
+        last_refresh: new Date().toISOString(),
+        refresh_token: c.refresh_token || ''
+      };
+    }
+
+    function sub2apiAccountFromCpa(cpa, index) {
+      const email = cpa.email || `account-${index + 1}`;
+      return {
+        name: email,
+        notes: '',
+        platform: 'openai',
+        type: 'oauth',
+        credentials: {
+          access_token: cpa.access_token || '',
+          email,
+          expires_at: cpa.expired || '',
+          id_token: cpa.id_token || '',
+          organization_id: cpa.account_id || '',
+          refresh_token: cpa.refresh_token || ''
+        },
+        extra: {},
+        concurrency: 0,
+        priority: 0,
+        rate_multiplier: 1,
+        auto_pause_on_expired: true
+      };
+    }
+
+    async function previewFiles() {
+      if (!selectedFiles.length) return;
+      try {
+        if (getMode() === 'sub2api-to-cpa') {
+          const data = await readJsonFile(selectedFiles[0]);
+          const accounts = Array.isArray(data.accounts) ? data.accounts : [];
+          const sample = accounts[0] ? cpaFromSub2apiAccount(accounts[0], 0) : null;
+          preview.textContent = JSON.stringify(maskLongStrings({ 将生成CPA文件数: accounts.length, 示例: sample }), null, 2);
+          statusPill.textContent = `${accounts.length} 个账号`;
+          convertBtn.disabled = accounts.length === 0;
+          setNotice(accounts.length ? `已识别 ${accounts.length} 个 sub2api 账号。` : '没有在 accounts 中找到账号。', accounts.length ? 'success' : 'warning');
+        } else {
+          const cpas = [];
+          for (let i = 0; i < selectedFiles.length; i++) cpas.push(await readJsonFile(selectedFiles[i]));
+          const sample = cpas[0] ? sub2apiAccountFromCpa(cpas[0], 0) : null;
+          preview.textContent = JSON.stringify(maskLongStrings({ 将合并CPA文件数: cpas.length, sub2api结构示例: { exported_at: new Date().toISOString(), proxies: [], accounts: sample ? [sample] : [] } }), null, 2);
+          statusPill.textContent = `${cpas.length} 个文件`;
+          convertBtn.disabled = cpas.length === 0;
+          setNotice(`已选择 ${cpas.length} 个 CPA 文件。`, 'success');
+        }
+      } catch (error) {
+        preview.textContent = JSON.stringify({ 错误: error.message }, null, 2);
+        statusPill.textContent = '解析失败';
+        convertBtn.disabled = true;
+        setNotice(error.message, 'error');
+      }
+    }
+
+    async function convertAndDownload() {
+      convertBtn.disabled = true;
+      try {
+        if (getMode() === 'sub2api-to-cpa') {
+          const data = await readJsonFile(selectedFiles[0]);
+          const accounts = Array.isArray(data.accounts) ? data.accounts : [];
+          if (!accounts.length) throw new Error('没有在 sub2api JSON 的 accounts 中找到账号。');
+
+          accounts.forEach((account, index) => {
+            const cpa = cpaFromSub2apiAccount(account, index);
+            downloadJson(`${safeFileName(cpa.email)}.json`, cpa);
+          });
+          setNotice(`转换完成，已触发下载 ${accounts.length} 个 CPA JSON 文件。`, 'success');
+        } else {
+          const accounts = [];
+          for (let i = 0; i < selectedFiles.length; i++) {
+            const cpa = await readJsonFile(selectedFiles[i]);
+            accounts.push(sub2apiAccountFromCpa(cpa, i));
+          }
+          const sub2api = {
+            exported_at: new Date().toISOString(),
+            proxies: [],
+            accounts
+          };
+          const stamp = new Date().toISOString().replace(/[-:T.Z]/g, '').slice(0, 14);
+          downloadJson(`sub2api-account-${stamp}.json`, sub2api);
+          setNotice(`转换完成，已合并 ${accounts.length} 个 CPA 账号为 sub2api JSON。`, 'success');
+        }
+      } catch (error) {
+        setNotice(error.message, 'error');
+      } finally {
+        convertBtn.disabled = selectedFiles.length === 0;
+      }
+    }
+
+    function setFiles(files) {
+      const isSubToCpa = getMode() === 'sub2api-to-cpa';
+      selectedFiles = isSubToCpa ? Array.from(files).slice(0, 1) : Array.from(files);
+      renderFileList();
+      previewFiles();
+    }
+
+    modeGrid.addEventListener('change', updateModeUi);
+    fileInput.addEventListener('change', event => setFiles(event.target.files));
+    clearBtn.addEventListener('click', clearFiles);
+    convertBtn.addEventListener('click', convertAndDownload);
+
+    ['dragenter', 'dragover'].forEach(type => {
+      dropzone.addEventListener(type, event => {
+        event.preventDefault();
+        dropzone.classList.add('dragging');
+      });
+    });
+
+    ['dragleave', 'drop'].forEach(type => {
+      dropzone.addEventListener(type, event => {
+        event.preventDefault();
+        dropzone.classList.remove('dragging');
+      });
+    });
+
+    dropzone.addEventListener('drop', event => setFiles(event.dataTransfer.files));
+  </script>
+</body>
+</html>

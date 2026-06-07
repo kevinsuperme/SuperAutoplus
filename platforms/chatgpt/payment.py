@@ -4605,6 +4605,18 @@ def _wait_for_ctf_after_continue_ready(
         if callable(cancel_check) and cancel_check():
             raise RuntimeError("任务已取消")
         current_url = _current_page_url(page)
+        if _has_security_challenge(page):
+            _wait_for_manual_security_challenge(
+                page,
+                timeout_ms=300000,
+                log=log,
+                cancel_check=cancel_check,
+                turnstile_solver=turnstile_solver,
+            )
+            continue
+        if _ctf_payment_form_ready(page) or _ctf_verification_popup_visible(page):
+            log("CTF 创建页付款表单已出现")
+            return
         # 代理断流：加载失败页先尝试重新加载恢复，再继续判定
         if _is_page_load_error_url(current_url):
             _recover_page_load_if_errored(
@@ -4616,18 +4628,6 @@ def _wait_for_ctf_after_continue_ready(
             continue
         if _follow_paypal_onboarding_redirect_response(page, timeout_ms=timeout_ms, log=log):
             continue
-        if _has_security_challenge(page):
-            _wait_for_manual_security_challenge(
-                page,
-                timeout_ms=300000,
-                log=log,
-                cancel_check=cancel_check,
-                turnstile_solver=turnstile_solver,
-            )
-            continue
-        if _ctf_after_continue_ready(page):
-            log("CTF 创建页付款表单已出现")
-            return
         try:
             page.wait_for_timeout(1000)
         except Exception:
@@ -5519,6 +5519,8 @@ def _fill_paypal_unified_guest_form(page, identity: dict, *, log: Callable[[str]
     except Exception:
         has_card = False
     if not has_card:
+        return False
+    if not callable(getattr(page, "evaluate", None)):
         return False
 
     log_fn("PayPal 统一 guest 表单：按 GuJumpgate 方式逐 id JS 填值")

@@ -644,27 +644,7 @@ class HeroSmsProvider(BaseSmsProvider):
 
     def _request_number_raw(self, service: str, country: str) -> dict:
         common = {"service": service, "country": country}
-
-        # 动态获取该国家该服务的实际价格，用实际价格作为 maxPrice
-        # 这样能确保拿到物理号码（而不是被分配虚拟号码）
         effective_max_price = self.max_price if self.max_price > 0 else 1
-        try:
-            prices = self.get_prices(service=service, country=country)
-            # getPrices 返回格式: {country_id: {service_code: {cost, count}}}
-            country_prices = prices.get(str(country)) or prices.get(country) or {}
-            service_prices = country_prices.get(service) or {}
-            actual_cost = service_prices.get("cost") or service_prices.get("price")
-            if actual_cost is not None:
-                actual_cost = float(actual_cost)
-                # 用实际价格的 3 倍作为 maxPrice（留足余量），但不超过用户配置的上限
-                dynamic_max = round(actual_cost * 3, 4)
-                if self.max_price > 0:
-                    effective_max_price = min(self.max_price, max(dynamic_max, 0.2))
-                else:
-                    effective_max_price = max(dynamic_max, 0.2)
-        except Exception:
-            pass  # 查询失败就用默认值
-
         common["maxPrice"] = effective_max_price
 
         v2_error = ""
@@ -680,20 +660,31 @@ class HeroSmsProvider(BaseSmsProvider):
         except Exception as exc:
             v2_error = str(exc)
 
-        # 如果 NO_NUMBERS 且 maxPrice 低于用户配置的上限，提高 maxPrice 重试
-        if "NO_NUMBERS" in v2_error and self.max_price > 0 and effective_max_price < self.max_price:
-            common["maxPrice"] = self.max_price
+        if "NO_NUMBERS" in v2_error:
+            retry_max_price = self.max_price if self.max_price > 0 else effective_max_price
             try:
-                resp = self._request({"action": "getNumberV2", **common})
+                prices = self.get_prices(service=service, country=country)
+                country_prices = prices.get(str(country)) or prices.get(country) or {}
+                service_prices = country_prices.get(service) or {}
+                actual_cost = service_prices.get("cost") or service_prices.get("price")
+                if actual_cost is not None:
+                    dynamic_max = max(round(float(actual_cost) * 3, 4), 0.2)
+                    retry_max_price = min(self.max_price, dynamic_max) if self.max_price > 0 else dynamic_max
+            except Exception:
+                pass
+            if retry_max_price > effective_max_price:
+                common["maxPrice"] = retry_max_price
                 try:
-                    data = resp.json()
-                except ValueError:
-                    data = None
-                if isinstance(data, dict) and data.get("activationId"):
-                    return data
-                v2_error = resp.text.strip()[:200]
-            except Exception as exc:
-                v2_error = str(exc)
+                    resp = self._request({"action": "getNumberV2", **common})
+                    try:
+                        data = resp.json()
+                    except ValueError:
+                        data = None
+                    if isinstance(data, dict) and data.get("activationId"):
+                        return data
+                    v2_error = resp.text.strip()[:200]
+                except Exception as exc:
+                    v2_error = str(exc)
 
         try:
             text = self._request({"action": "getNumber", **common}).text.strip()

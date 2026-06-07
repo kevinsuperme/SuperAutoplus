@@ -41,16 +41,21 @@ user@example.com----tok_example
 
 - 标题：`LuckMail 验证码查询`
 - 状态横幅：显示等待、成功或错误状态。
+- 邮箱 Token 输入区：
+  - 标签：`邮箱 Token 文本或单独 Token`
+  - 作为页面第一步操作，位于 ChatGPT Access Token 辅助区上方。
+  - 支持粘贴 `邮箱----token` 或单独 `tok_xxx`。
+  - 完整格式会自动解析并显示邮箱名称。
+  - 单独 token 会先显示 `提交后识别邮箱`，查询成功后显示 LuckMail 返回的邮箱名称。
+- 邮箱名称显示区：
+  - 完整格式输入后立即显示解析出的邮箱。
+  - 单独 token 查询成功后显示接口返回邮箱。
 - ChatGPT Access Token 辅助区：
   - 标签：`ChatGPT Access Token`
   - `打开 Session` 按钮：新标签页打开 `https://chatgpt.com/api/auth/session`。
   - `从剪贴板填入` 按钮：读取剪贴板文本，支持从 session JSON 中提取 `accessToken` / `access_token` / `token` / `primary_token`。
   - 文本框支持手动粘贴 session JSON；若识别到 token，会自动替换为纯 token。
   - token 仅保存在当前页面 React state 中，不写 localStorage，不随 LuckMail API 请求提交。
-- 单个输入区：
-  - 标签：`邮箱 Token 文本`
-  - 支持粘贴 `邮箱----token` 或单独 `tok_xxx`
-  - 完整格式会自动解析并预览邮箱；单独 token 会在查询成功后使用 LuckMail 返回的邮箱。
 - 主按钮：`获取验证码`
 - 状态流程区：
   - `解析文本`
@@ -194,6 +199,7 @@ tok_xxxxxxxxxxxxxxxxx
 新增组件：
 
 - `frontend/src/pages/LuckMailCodeClient.tsx`
+- `frontend/src/lib/luckmail-ticket.ts`
 - `frontend/src/lib/session-token.ts`
 
 路由处理：
@@ -234,7 +240,10 @@ Access Token 辅助流程：
 
 - `npm run build` 成功。
 - `/luckmail-code` 未登录可访问。
-- 页面渲染单输入框、邮箱预览、状态流程和复制按钮。
+- 页面第一步渲染邮箱 Token 输入框，并在 `邮箱----token` 粘贴后立即显示邮箱名称。
+- 单独 token 查询成功后使用接口返回邮箱更新邮箱名称。
+- ChatGPT Access Token 辅助区位于邮箱 Token 输入区下方。
+- 页面渲染状态流程和复制按钮。
 - 输入格式错误时不发起无效查询或显示清晰错误。
 - session JSON 中的 `accessToken` 可被提取。
 - 嵌套 JSON 中的 `access_token` 可被提取。

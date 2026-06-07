@@ -257,6 +257,9 @@ class PixGptPlusService:
             )
 
         token, email, credential_error = self._extract_client_credential(credential)
+        submitted_email = _remote_text(payload.get("email")).lower()
+        if submitted_email and "@" in submitted_email:
+            email = submitted_email
         if credential_error == "invalid_credential":
             return _client_response(
                 ok=False,

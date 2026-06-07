@@ -1,4 +1,5 @@
 """ChatGPT / Codex CLI 平台插件"""
+import inspect
 import os
 import re
 import secrets
@@ -75,6 +76,24 @@ def _build_checkout_har_path(email: str) -> str:
     return os.path.join(capture_dir, f"checkout-{timestamp}-{slug}.har")
 
 
+def _call_with_supported_kwargs(fn, *args, **kwargs):
+    """Call fn while tolerating older monkeypatched/test fakes without new kwargs."""
+    try:
+        signature = inspect.signature(fn)
+    except (TypeError, ValueError):
+        return fn(*args, **kwargs)
+    parameters = signature.parameters.values()
+    if any(param.kind is inspect.Parameter.VAR_KEYWORD for param in parameters):
+        return fn(*args, **kwargs)
+    allowed = {
+        name
+        for name, param in signature.parameters.items()
+        if param.kind in (inspect.Parameter.POSITIONAL_OR_KEYWORD, inspect.Parameter.KEYWORD_ONLY)
+    }
+    filtered = {key: value for key, value in kwargs.items() if key in allowed}
+    return fn(*args, **filtered)
+
+
 def _run_sync_checkout_isolated(checkout_fn, **kwargs):
     """把 checkout 函数丢进独立线程跑，避免阻塞外层 asyncio loop / 任务线程。
 
@@ -106,7 +125,7 @@ def _run_sync_checkout_isolated(checkout_fn, **kwargs):
             except Exception:
                 pass
         try:
-            result_box["result"] = checkout_fn(**kwargs)
+            result_box["result"] = _call_with_supported_kwargs(checkout_fn, **kwargs)
         except BaseException as exc:
             error_box["error"] = exc
         finally:
@@ -769,7 +788,8 @@ class ChatGPTPlatform(BasePlatform):
                 getattr(self, "_log_fn", print)(
                     "cashier_url 走 Stripe init 协议长链（accessToken → pay.openai.com，纯协议）"
                 )
-            url = payment_module.generate_plus_link(
+            url = _call_with_supported_kwargs(
+                payment_module.generate_plus_link,
                 a, proxy=None, country=country, currency=currency,
                 use_stripe_init=use_stripe_init,
                 use_short_link=use_short_link,
