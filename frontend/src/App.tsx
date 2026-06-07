@@ -546,18 +546,15 @@ function ProtectedAppContent() {
   );
 }
 
-function AppContent() {
+export default function App() {
   const publicRoute = getPublicClientRoute(window.location.pathname);
   if (publicRoute) {
     return <PublicClientRoute route={publicRoute} />;
   }
-  return <ProtectedAppContent />;
-}
 
-export default function App() {
   return (
     <I18nProvider>
-      <AppContent />
+      <ProtectedAppContent />
     </I18nProvider>
   );
 }
