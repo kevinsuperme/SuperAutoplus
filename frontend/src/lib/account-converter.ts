@@ -2,14 +2,14 @@ export type ConverterMode = "sub2api-to-cpa" | "cpa-to-sub2api";
 
 export type JsonObject = Record<string, unknown>;
 
-export type NamedJsonInput = {
+export type NamedJsonInput<T = unknown> = {
   filename: string;
-  data: unknown;
+  data: T;
 };
 
-export type DownloadItem = {
+export type DownloadItem<T = JsonObject> = {
   filename: string;
-  data: unknown;
+  data: T;
 };
 
 export type ConverterErrorCode =
@@ -56,18 +56,6 @@ const CPA_FIELDS = [
   "refresh_token",
 ] as const;
 
-type HostGlobal = {
-  JSON?: JSON;
-};
-
-type GlobalWithTestModule = typeof globalThis & {
-  module?: {
-    constructor?: {
-      constructor?: (source: string) => () => HostGlobal;
-    };
-  };
-};
-
 function isJsonObject(value: unknown): value is JsonObject {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
@@ -87,32 +75,12 @@ function errorResult(
   message: string,
   filename?: string,
 ): ConverterErrorResult {
-  return plainJson({
+  return {
     ok: false,
     code,
     message,
     ...(filename ? { filename } : {}),
-  });
-}
-
-function getHostJson() {
-  const hostFactory = (globalThis as GlobalWithTestModule).module?.constructor?.constructor;
-  if (hostFactory) {
-    try {
-      const hostGlobal = hostFactory("return globalThis")();
-      if (hostGlobal.JSON) return hostGlobal.JSON;
-    } catch {
-      return JSON;
-    }
-  }
-
-  return JSON;
-}
-
-function plainJson<T>(value: T): T {
-  const textValue = JSON.stringify(value);
-  if (textValue === undefined) return value;
-  return getHostJson().parse(textValue) as T;
+  };
 }
 
 export function safeFileName(name: string) {
@@ -168,7 +136,7 @@ export function cpaFromSub2apiAccount(
   const credentials = isJsonObject(account.credentials) ? account.credentials : {};
   const email = text(credentials.email) || text(account.name) || `account-${index}`;
 
-  return plainJson({
+  return {
     filename: safeFileName(`${email}.json`),
     data: {
       type: "codex",
@@ -180,14 +148,14 @@ export function cpaFromSub2apiAccount(
       last_refresh: nowIso,
       refresh_token: text(credentials.refresh_token),
     },
-  });
+  };
 }
 
 export function sub2apiAccountFromCpa(cpaValue: unknown, index: number) {
   const cpa = isJsonObject(cpaValue) ? cpaValue : {};
   const name = text(cpa.email) || `account-${index}`;
 
-  return plainJson({
+  return {
     name,
     notes: "",
     platform: "openai",
@@ -205,7 +173,7 @@ export function sub2apiAccountFromCpa(cpaValue: unknown, index: number) {
     priority: 0,
     rate_multiplier: 1,
     auto_pause_on_expired: true,
-  });
+  };
 }
 
 export function buildSub2apiToCpaDownloads(
@@ -224,12 +192,12 @@ export function buildSub2apiToCpaDownloads(
     cpaFromSub2apiAccount(account, index + 1, nowIso),
   );
 
-  return plainJson({
+  return {
     ok: true,
     downloads,
     warnings: [],
     message: `已生成 ${downloads.length} 个 CPA JSON 文件。`,
-  });
+  };
 }
 
 export function buildCpaToSub2apiDownload(
@@ -254,7 +222,7 @@ export function buildCpaToSub2apiDownload(
     accounts.push(sub2apiAccountFromCpa(input.data, index + 1));
   }
 
-  return plainJson({
+  return {
     ok: true,
     downloads: [
       {
@@ -268,7 +236,7 @@ export function buildCpaToSub2apiDownload(
     ],
     warnings: [],
     message: `已合并 ${accounts.length} 个 CPA JSON 文件。`,
-  });
+  };
 }
 
 export function buildConverterPreview(
@@ -277,10 +245,14 @@ export function buildConverterPreview(
   nowIso = new Date().toISOString(),
 ): PreviewResult {
   if (mode === "sub2api-to-cpa") {
+    if (inputs.length === 0) {
+      return errorResult("missing_file", "请选择 JSON 文件。");
+    }
+
     const result = buildSub2apiToCpaDownloads(inputs[0]?.data, nowIso);
     if (!result.ok) return result;
 
-    return plainJson({
+    return {
       ok: true,
       count: result.downloads.length,
       title: "sub2api 转 CPA 预览",
@@ -290,13 +262,13 @@ export function buildConverterPreview(
       }),
       warnings: [],
       message: result.message,
-    });
+    };
   }
 
   const result = buildCpaToSub2apiDownload(inputs, nowIso);
   if (!result.ok) return result;
 
-  return plainJson({
+  return {
     ok: true,
     count: inputs.length,
     title: "CPA 转 sub2api 预览",
@@ -306,5 +278,5 @@ export function buildConverterPreview(
     }),
     warnings: [],
     message: result.message,
-  });
+  };
 }

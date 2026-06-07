@@ -23,6 +23,10 @@ async function loadConverterModule() {
   return module.exports;
 }
 
+function hostJson(value) {
+  return JSON.parse(JSON.stringify(value));
+}
+
 const NOW = "2026-06-07T01:02:03.000Z";
 
 test("converts one sub2api account into one CPA download", async () => {
@@ -48,11 +52,11 @@ test("converts one sub2api account into one CPA download", async () => {
   );
 
   assert.equal(result.ok, true);
-  assert.deepEqual(result.warnings, []);
+  assert.deepEqual(hostJson(result.warnings), []);
   assert.notEqual(result.message, "");
   assert.equal(result.downloads.length, 1);
   assert.equal(result.downloads[0].filename, "user@example.com.json");
-  assert.deepEqual(result.downloads[0].data, {
+  assert.deepEqual(hostJson(result.downloads[0].data), {
     type: "codex",
     email: "user@example.com",
     expired: "2026-07-01T00:00:00Z",
@@ -124,7 +128,7 @@ test("converts one CPA file into sub2api structure", async () => {
   assert.equal(result.ok, true);
   assert.equal(result.downloads.length, 1);
   assert.equal(result.downloads[0].filename, "sub2api-account-20260607010203.json");
-  assert.deepEqual(result.downloads[0].data, {
+  assert.deepEqual(hostJson(result.downloads[0].data), {
     exported_at: NOW,
     proxies: [],
     accounts: [
@@ -206,6 +210,27 @@ test("rejects empty CPA file selection", async () => {
   assert.equal(result.message, "请选择 CPA JSON 文件。");
 });
 
+test("rejects empty sub2api preview file selection", async () => {
+  const { buildConverterPreview } = await loadConverterModule();
+
+  const result = buildConverterPreview("sub2api-to-cpa", [], NOW);
+
+  assert.equal(result.ok, false);
+  assert.equal(result.code, "missing_file");
+  assert.equal(result.message, "请选择 JSON 文件。");
+});
+
+test("formats byte counts for upload labels", async () => {
+  const { formatBytes } = await loadConverterModule();
+
+  assert.equal(formatBytes(0), "0 B");
+  assert.equal(formatBytes(512), "512 B");
+  assert.equal(formatBytes(1024), "1 KB");
+  assert.equal(formatBytes(1536), "1.5 KB");
+  assert.equal(formatBytes(Number.POSITIVE_INFINITY), "0 B");
+  assert.equal(formatBytes(-1), "0 B");
+});
+
 test("masks long strings in previews", async () => {
   const { maskLongStrings } = await loadConverterModule();
 
@@ -244,7 +269,7 @@ test("builds a masked converter preview", async () => {
   assert.equal(result.ok, true);
   assert.equal(result.count, 1);
   assert.notEqual(result.title, "");
-  assert.deepEqual(result.warnings, []);
+  assert.deepEqual(hostJson(result.warnings), []);
   assert.notEqual(result.message, "");
   assert.equal(result.sample.将合并CPA文件数, 1);
   assert.equal(
