@@ -85,8 +85,7 @@ data/
 *.swp
 .ace-tool/
 
-# AI 工具 & 设计文档
-AGENTS.md
+# AI 工具缓存
 .claude/
 .superpowers/
 .trellis/
