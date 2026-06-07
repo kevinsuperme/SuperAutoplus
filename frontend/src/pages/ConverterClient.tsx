@@ -93,6 +93,7 @@ function downloadJson(filename: string, data: unknown) {
 
 export default function ConverterClient() {
   const inputRef = useRef<HTMLInputElement | null>(null);
+  const loadIdRef = useRef(0);
   const [mode, setMode] = useState<ConverterMode>("sub2api-to-cpa");
   const [files, setFiles] = useState<ParsedFile[]>([]);
   const [previewResult, setPreviewResult] = useState<PreviewResult | null>(null);
@@ -117,8 +118,10 @@ export default function ConverterClient() {
   }, [previewResult]);
 
   const resetSelection = () => {
+    loadIdRef.current += 1;
     setFiles([]);
     setPreviewResult(null);
+    setDragging(false);
     setBanner({
       tone: "neutral",
       message: LOCAL_CONVERSION_MESSAGE,
@@ -127,18 +130,23 @@ export default function ConverterClient() {
   };
 
   const updateMode = (nextMode: ConverterMode) => {
-    if (nextMode === mode) return;
+    if (nextMode === mode || busy) return;
     setMode(nextMode);
     resetSelection();
   };
 
   const openFilePicker = () => {
+    if (busy) return;
     inputRef.current?.click();
   };
 
   const loadFiles = async (fileList: FileList | null) => {
+    const loadId = loadIdRef.current + 1;
+    loadIdRef.current = loadId;
+    const activeMode = mode;
+    const activeIsSub2apiToCpa = activeMode === "sub2api-to-cpa";
     const nextFiles = Array.from(fileList || []);
-    const limitedFiles = isSub2apiToCpa ? nextFiles.slice(0, 1) : nextFiles;
+    const limitedFiles = activeIsSub2apiToCpa ? nextFiles.slice(0, 1) : nextFiles;
 
     if (limitedFiles.length === 0) {
       resetSelection();
@@ -157,7 +165,9 @@ export default function ConverterClient() {
           data: await readJsonFile(file),
         })),
       );
-      const preview = buildConverterPreview(mode, parsed);
+      if (loadIdRef.current !== loadId) return;
+
+      const preview = buildConverterPreview(activeMode, parsed);
       setFiles(parsed);
       setPreviewResult(preview);
 
@@ -171,6 +181,7 @@ export default function ConverterClient() {
         message: preview.message,
       });
     } catch (error) {
+      if (loadIdRef.current !== loadId) return;
       const message = error instanceof Error ? error.message : "文件读取失败。";
       setFiles([]);
       setPreviewResult({
@@ -180,21 +191,26 @@ export default function ConverterClient() {
       });
       setBanner({ tone: "error", message });
     } finally {
-      setBusy(false);
+      if (loadIdRef.current === loadId) {
+        setBusy(false);
+      }
     }
   };
 
   const handleInputChange = (event: ChangeEvent<HTMLInputElement>) => {
+    if (busy) return;
     void loadFiles(event.target.files);
   };
 
   const handleDrop = (event: DragEvent<HTMLDivElement>) => {
     event.preventDefault();
     setDragging(false);
+    if (busy) return;
     void loadFiles(event.dataTransfer.files);
   };
 
   const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    if (busy) return;
     if (event.key === "Enter" || event.key === " ") {
       event.preventDefault();
       openFilePicker();
@@ -221,10 +237,15 @@ export default function ConverterClient() {
     }
 
     result.downloads.forEach((download, index) => {
-      window.setTimeout(
-        () => downloadJson(download.filename, download.data),
-        index * 120,
-      );
+      window.setTimeout(() => {
+        try {
+          downloadJson(download.filename, download.data);
+        } finally {
+          if (index === result.downloads.length - 1) {
+            setBusy(false);
+          }
+        }
+      }, index * 120);
     });
 
     setBanner({
@@ -234,7 +255,6 @@ export default function ConverterClient() {
           ? `已触发下载 ${result.downloads.length} 个文件；如果浏览器拦截多文件下载，请允许此站点下载多个文件。`
           : "已触发下载 1 个文件。",
     });
-    setBusy(false);
   };
 
   const BannerIcon =
@@ -312,12 +332,14 @@ export default function ConverterClient() {
                         type="button"
                         role="radio"
                         aria-checked={active}
+                        disabled={busy}
                         onClick={() => updateMode(option.value)}
                         className={cn(
                           "flex min-w-0 cursor-pointer items-center gap-3 rounded-xl border px-3 py-3 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bg-card)]",
                           active
                             ? "border-[var(--accent-edge)] bg-[var(--accent-soft)] text-[var(--accent)]"
                             : "border-[var(--border)] bg-[var(--bg-pane)]/40 text-[var(--text-secondary)] hover:border-[var(--accent-edge)]",
+                          busy && "cursor-not-allowed opacity-60",
                         )}
                       >
                         <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-current/20">
@@ -339,20 +361,24 @@ export default function ConverterClient() {
 
               <div
                 role="button"
-                tabIndex={0}
+                tabIndex={busy ? -1 : 0}
                 aria-label="选择或拖放 JSON 文件"
+                aria-disabled={busy}
                 onClick={openFilePicker}
                 onKeyDown={handleKeyDown}
                 onDragEnter={(event) => {
                   event.preventDefault();
+                  if (busy) return;
                   setDragging(true);
                 }}
                 onDragOver={(event) => {
                   event.preventDefault();
+                  if (busy) return;
                   setDragging(true);
                 }}
                 onDragLeave={(event) => {
                   event.preventDefault();
+                  if (busy) return;
                   setDragging(false);
                 }}
                 onDrop={handleDrop}
@@ -361,6 +387,7 @@ export default function ConverterClient() {
                   dragging
                     ? "border-[var(--accent)] bg-[var(--accent-soft)]"
                     : "border-[var(--border)] bg-[var(--bg-pane)]/35 hover:border-[var(--accent-edge)]",
+                  busy && "cursor-not-allowed opacity-70 hover:border-[var(--border)]",
                 )}
               >
                 <input
@@ -370,6 +397,7 @@ export default function ConverterClient() {
                   accept=".json,application/json"
                   multiple={!isSub2apiToCpa}
                   onChange={handleInputChange}
+                  disabled={busy}
                   className="sr-only"
                   aria-label="选择 JSON 文件"
                 />
@@ -435,6 +463,7 @@ export default function ConverterClient() {
                   variant="outline"
                   size="lg"
                   onClick={resetSelection}
+                  disabled={busy}
                 >
                   清空
                 </Button>
