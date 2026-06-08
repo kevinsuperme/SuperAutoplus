@@ -13,6 +13,8 @@ from application.tasks import (
     create_phone_bind_task,
     create_codex_oauth_task,
     create_gopay_pay_chatgpt_task,
+    create_idp_team_automation_preflight_task,
+    create_idp_team_automation_sync_task,
     get_task,
     list_task_events,
     request_cancel,
@@ -38,6 +40,16 @@ class TaskCommandsService:
 
     def create_gopay_pay_chatgpt_task(self, payload: dict) -> dict:
         task = create_gopay_pay_chatgpt_task(payload)
+        task_runtime.wake_up()
+        return task
+
+    def create_idp_team_automation_preflight_task(self, payload: dict) -> dict:
+        task = create_idp_team_automation_preflight_task(payload)
+        task_runtime.wake_up()
+        return task
+
+    def create_idp_team_automation_sync_task(self, payload: dict) -> dict:
+        task = create_idp_team_automation_sync_task(payload)
         task_runtime.wake_up()
         return task
 

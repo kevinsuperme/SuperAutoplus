@@ -24,6 +24,10 @@ from core.platform_accounts import build_platform_account
 from core.registry import get
 from infrastructure.platform_runtime import PlatformRuntime
 from application.ctf_plus import CtfPlusAccountsService
+from application.idp_team_automation import (
+    IdpTeamAutomationPreflightRunner,
+    IdpTeamAutomationSyncRunner,
+)
 from application.phone_binding import PhoneBindingService
 
 TASK_TYPE_REGISTER = "register"
@@ -33,6 +37,8 @@ TASK_TYPE_PLATFORM_ACTION = "platform_action"
 TASK_TYPE_PHONE_BIND = "phone_bind"
 TASK_TYPE_CODEX_OAUTH = "codex_oauth"
 TASK_TYPE_GOPAY_PAY_CHATGPT = "gopay_pay_chatgpt"
+TASK_TYPE_IDP_TEAM_AUTOMATION_PREFLIGHT = "idp_team_automation_preflight"
+TASK_TYPE_IDP_TEAM_AUTOMATION_SYNC = "idp_team_automation_sync"
 
 TASK_STATUS_PENDING = "pending"
 TASK_STATUS_CLAIMED = "claimed"
@@ -137,8 +143,10 @@ def _task_account_keys(task_type: str, payload: dict[str, Any]) -> list[str]:
         account_id = int(payload.get("account_id", 0) or 0)
         if account_id > 0:
             return [f"account:{account_id}"]
-    if task_type in {TASK_TYPE_PHONE_BIND, TASK_TYPE_CODEX_OAUTH}:
+    if task_type in {TASK_TYPE_PHONE_BIND, TASK_TYPE_CODEX_OAUTH, TASK_TYPE_IDP_TEAM_AUTOMATION_SYNC}:
         ids = [int(item) for item in payload.get("ids") or [] if int(item or 0) > 0]
+        if not ids:
+            ids = [int(item) for item in payload.get("account_ids") or [] if int(item or 0) > 0]
         if not ids and int(payload.get("account_id") or 0) > 0:
             ids = [int(payload.get("account_id") or 0)]
         return [f"account:{account_id}" for account_id in ids]
@@ -300,6 +308,35 @@ def create_gopay_pay_chatgpt_task(payload: dict[str, Any]) -> dict[str, Any]:
         platform="chatgpt",
         payload=payload,
         progress_total=total,
+    )
+
+
+def create_idp_team_automation_preflight_task(payload: dict[str, Any]) -> dict[str, Any]:
+    safe_payload = {"run_tests": bool(payload.get("run_tests"))}
+    return create_task(
+        task_type=TASK_TYPE_IDP_TEAM_AUTOMATION_PREFLIGHT,
+        platform="chatgpt",
+        payload=safe_payload,
+        progress_total=1,
+    )
+
+
+def create_idp_team_automation_sync_task(payload: dict[str, Any]) -> dict[str, Any]:
+    account_ids = [int(item) for item in payload.get("account_ids") or [] if int(item or 0) > 0]
+    safe_payload = {
+        "account_ids": account_ids,
+        "export_sub2api": bool(payload.get("export_sub2api")),
+        "export_any2api": bool(payload.get("export_any2api")),
+        "push_sub2api": bool(payload.get("push_sub2api")),
+    }
+    trigger_source = str(payload.get("trigger_source") or "").strip()
+    if trigger_source:
+        safe_payload["trigger_source"] = trigger_source
+    return create_task(
+        task_type=TASK_TYPE_IDP_TEAM_AUTOMATION_SYNC,
+        platform="chatgpt",
+        payload=safe_payload,
+        progress_total=max(len(account_ids), 1),
     )
 
 
@@ -775,6 +812,8 @@ def execute_task(task_id: str) -> None:
         TASK_TYPE_PHONE_BIND: _execute_phone_bind_task,
         TASK_TYPE_CODEX_OAUTH: _execute_codex_oauth_task,
         TASK_TYPE_GOPAY_PAY_CHATGPT: _execute_gopay_pay_chatgpt_task,
+        TASK_TYPE_IDP_TEAM_AUTOMATION_PREFLIGHT: _execute_idp_team_automation_preflight_task,
+        TASK_TYPE_IDP_TEAM_AUTOMATION_SYNC: _execute_idp_team_automation_sync_task,
     }
     handler = handlers.get(task_type)
     if not handler:
@@ -1747,6 +1786,76 @@ def _execute_codex_oauth_task(payload: dict[str, Any], logger: TaskLogger) -> No
         return
     final_status = TASK_STATUS_SUCCEEDED if failure_count == 0 else TASK_STATUS_FAILED
     logger.finish(final_status)
+
+
+def _execute_idp_team_automation_preflight_task(payload: dict[str, Any], logger: TaskLogger) -> None:
+    if logger.is_cancel_requested():
+        logger.finish(TASK_STATUS_CANCELLED, error="任务已取消")
+        return
+    logger.set_progress(0, 1)
+    try:
+        result = IdpTeamAutomationPreflightRunner().run(
+            payload,
+            task_id=logger.task_id,
+            log_fn=logger.log,
+            cancel_check=logger.is_cancel_requested,
+        )
+    except Exception as exc:
+        error = str(exc)
+        logger.record_error(error)
+        logger.set_result_data({"ok": False, "error": error})
+        logger.set_progress(1, 1)
+        logger.finish(TASK_STATUS_FAILED, error=error)
+        return
+
+    logger.set_result_data(result)
+    logger.set_progress(1, 1)
+    if result.get("cancelled") or logger.is_cancel_requested():
+        logger.finish(TASK_STATUS_CANCELLED, error="任务已取消")
+        return
+    if result.get("ok"):
+        logger.record_success()
+        logger.finish(TASK_STATUS_SUCCEEDED)
+        return
+    tests = result.get("tests") if isinstance(result.get("tests"), dict) else {}
+    error = str(tests.get("error") or "IDP Team Automation 预检未通过")
+    logger.record_error(error)
+    logger.finish(TASK_STATUS_FAILED, error=error)
+
+
+def _execute_idp_team_automation_sync_task(payload: dict[str, Any], logger: TaskLogger) -> None:
+    if logger.is_cancel_requested():
+        logger.finish(TASK_STATUS_CANCELLED, error="任务已取消")
+        return
+    total = max(len([int(v) for v in payload.get("account_ids") or [] if int(v or 0) > 0]), 1)
+    logger.set_progress(0, total)
+    try:
+        result = IdpTeamAutomationSyncRunner().run(
+            payload,
+            task_id=logger.task_id,
+            log_fn=logger.log,
+            cancel_check=logger.is_cancel_requested,
+        )
+    except Exception as exc:
+        error = str(exc)
+        logger.record_error(error)
+        logger.set_result_data({"ok": False, "error": error})
+        logger.set_progress(total, total)
+        logger.finish(TASK_STATUS_FAILED, error=error)
+        return
+
+    logger.set_result_data(result)
+    logger.set_progress(total, total)
+    if result.get("cancelled") or logger.is_cancel_requested():
+        logger.finish(TASK_STATUS_CANCELLED, error="任务已取消")
+        return
+    if result.get("ok"):
+        logger.record_success()
+        logger.finish(TASK_STATUS_SUCCEEDED)
+        return
+    error = str(result.get("error") or "IDP Team Automation 同步未通过")
+    logger.record_error(error)
+    logger.finish(TASK_STATUS_FAILED, error=error)
 
 
 def _execute_gopay_pay_chatgpt_task(payload: dict[str, Any], logger: TaskLogger) -> None:

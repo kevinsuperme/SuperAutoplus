@@ -23,6 +23,7 @@ import CtfGptPlus from "@/pages/CtfGptPlus";
 import GoPayGptPlus from "@/pages/GoPayGptPlus";
 import PixGptPlus from "@/pages/PixGptPlus";
 import PlusManager from "@/pages/PlusManager";
+import IdpTeamAutomation from "@/pages/IdpTeamAutomation";
 import ConverterClient from "@/pages/ConverterClient";
 import PxlPlusClient from "@/pages/PxlPlusClient";
 import LuckMailCodeClient from "@/pages/LuckMailCodeClient";
@@ -39,6 +40,7 @@ import {
   PanelLeftClose,
   QrCode,
   Settings as SettingsIcon,
+  ShieldCheck,
   Sparkles,
   Sun,
   Users,
@@ -57,6 +59,11 @@ const NAV_ITEMS: NavItem[] = [
   { path: "/gopay-gpt-plus", labelKey: "nav.gopayGptPlus", icon: Sparkles },
   { path: "/pix-gpt-plus", labelKey: "nav.pixGptPlus", icon: QrCode },
   { path: "/plus-manager", labelKey: "nav.plusManager", icon: Sparkles },
+  {
+    path: "/idp-team-automation",
+    labelKey: "nav.idpTeamAutomation",
+    icon: ShieldCheck,
+  },
   { path: "/history", labelKey: "nav.tasks", icon: History },
 ];
 
@@ -372,6 +379,7 @@ function Shell({
             <Route path="/gopay-gpt-plus" element={<GoPayGptPlus />} />
             <Route path="/pix-gpt-plus" element={<PixGptPlus />} />
             <Route path="/plus-manager" element={<PlusManager />} />
+            <Route path="/idp-team-automation" element={<IdpTeamAutomation />} />
             <Route path="/history" element={<TaskHistory />} />
             <Route path="/proxies" element={<Proxies />} />
             <Route

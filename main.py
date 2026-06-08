@@ -57,6 +57,7 @@ from api.bitbrowser_profiles import router as bitbrowser_profiles_router
 from api.config import router as config_router
 from core.auth import AuthMiddleware
 from api.health import router as health_router
+from api.idp_team_automation import router as idp_team_automation_router
 from api.lifecycle import router as lifecycle_router
 from api.luckmail_client import router as luckmail_client_router
 from api.platform_capabilities import router as platform_capabilities_router
@@ -121,6 +122,7 @@ app.include_router(auth_router, prefix="/api")
 app.include_router(bitbrowser_profiles_router, prefix="/api")
 app.include_router(config_router, prefix="/api")
 app.include_router(health_router, prefix="/api")
+app.include_router(idp_team_automation_router, prefix="/api")
 app.include_router(lifecycle_router, prefix="/api")
 app.include_router(luckmail_client_router, prefix="/api")
 app.include_router(platforms_router, prefix="/api")

@@ -1,4 +1,4 @@
-"""定时任务调度 - 账号有效性检测、trial 到期提醒"""
+"""定时任务调度 - 账号有效性检测、trial 到期提醒、ITA 受控同步"""
 from datetime import datetime, timezone
 
 from sqlmodel import Session, select
@@ -8,6 +8,7 @@ from .base_platform import AccountStatus, RegisterConfig
 from .db import engine, AccountModel
 from .platform_accounts import build_platform_account
 from .registry import get, load_all
+from application.idp_team_automation import maybe_trigger_scheduled_sync
 import threading
 import time
 
@@ -20,6 +21,7 @@ class Scheduler:
     def __init__(self):
         self._running = False
         self._thread: threading.Thread = None
+        self._last_trial_expiry_check = 0.0
 
     def start(self):
         if self._running:
@@ -35,11 +37,14 @@ class Scheduler:
     def _loop(self):
         while self._running:
             try:
-                self.check_trial_expiry()
+                now_ts = time.time()
+                if now_ts - self._last_trial_expiry_check >= 3600:
+                    self.check_trial_expiry()
+                    self._last_trial_expiry_check = now_ts
+                self.check_idp_team_automation_schedule()
             except Exception as e:
                 print(f"[Scheduler] 错误: {e}")
-            # 每小时检查一次
-            time.sleep(3600)
+            time.sleep(60)
 
     def check_trial_expiry(self):
         """检查 trial 到期账号，更新状态"""
@@ -109,6 +114,11 @@ class Scheduler:
             except Exception:
                 results["error"] += 1
         return results
+
+    def check_idp_team_automation_schedule(self):
+        result = maybe_trigger_scheduled_sync()
+        if result.get("triggered"):
+            print(f"[Scheduler] ITA 定时同步已触发: {result.get('task_id')}")
 
 
 scheduler = Scheduler()

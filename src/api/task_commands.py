@@ -109,6 +109,17 @@ class GoPayPayChatGptTaskRequest(BaseModel):
     use_short_link: bool = False
 
 
+class IdpTeamAutomationPreflightTaskRequest(BaseModel):
+    run_tests: bool = True
+
+
+class IdpTeamAutomationSyncTaskRequest(BaseModel):
+    account_ids: list[int] = Field(default_factory=list)
+    export_sub2api: bool = True
+    export_any2api: bool = True
+    push_sub2api: bool = False
+
+
 @router.post("/register")
 def create_register_task(body: RegisterTaskRequest):
     return command_service.create_register_task(body.model_dump())
@@ -127,6 +138,16 @@ def create_codex_oauth_task(body: CodexOAuthTaskRequest):
 @router.post("/gopay-pay-chatgpt")
 def create_gopay_pay_chatgpt_task(body: GoPayPayChatGptTaskRequest):
     return command_service.create_gopay_pay_chatgpt_task(body.model_dump())
+
+
+@router.post("/idp-team-automation/preflight")
+def create_idp_team_automation_preflight_task(body: IdpTeamAutomationPreflightTaskRequest):
+    return command_service.create_idp_team_automation_preflight_task(body.model_dump())
+
+
+@router.post("/idp-team-automation/sync")
+def create_idp_team_automation_sync_task(body: IdpTeamAutomationSyncTaskRequest):
+    return command_service.create_idp_team_automation_sync_task(body.model_dump())
 
 
 @router.post("/{task_id}/cancel")
