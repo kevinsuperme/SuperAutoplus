@@ -1,87 +1,121 @@
-# PR Draft: IDP Team Automation Safe Admin Workflow
+# Recommended PR Title
+
+feat: integrate IDP Team Automation as a controlled admin workflow
+
+## Ready-to-paste PR Description
 
 ## Summary
 
-This PR integrates `IDP Team Automation` into SuperAutoplus as a controlled admin feature instead of exposing the upstream repository's high-risk interactive flows.
+This PR integrates `IDP Team Automation` into SuperAutoplus as a controlled admin workflow.
 
-The implementation adds:
+Instead of exposing the upstream repository's high-risk interactive entrypoints directly, we wrap the supported parts in managed APIs, task execution, persisted history, and a dedicated admin page.
+
+This PR includes:
 
 - a new `IDP Team Automation` admin page
-- safe authorized-credential import
+- safe import of already authorized credentials
 - controlled preflight and sync tasks
-- Sub2API / Any2API artifact generation
-- Sub2API push support with `created / updated / failed` result semantics
-- persisted sync history
+- artifact generation plus in-page download actions
+- real Sub2API push result states: `created` / `updated` / `failed`
+- persisted sync history and history list rendering
 - scheduled sync policy management
+- docs updates and local cache artifact cleanup
 
-## Scope
+## What Changed
 
-### Backend
+### Admin page
 
-- add `src/application/idp_team_automation.py`
-- add `src/api/idp_team_automation.py`
-- register new ITA routes in `main.py`
-- add ITA task creation endpoints in `src/api/task_commands.py`
-- wire ITA tasks into `src/application/task_commands.py`
-- execute ITA preflight/sync tasks through `src/application/tasks.py`
-- extend config whitelist in `src/infrastructure/config_repository.py`
-- trigger scheduled ITA sync checks from `src/core/scheduler.py`
+Added a new backend management page:
 
-### Frontend
+```text
+/idp-team-automation
+```
 
-- add `frontend/src/pages/IdpTeamAutomation.tsx`
-- add `frontend/src/lib/idp-team-automation.ts`
-- register the page in `frontend/src/App.tsx`
-- add nav copy in `frontend/src/lib/i18n.ts`
+Admins can now:
 
-### Tests
+- configure ITA-related local settings
+- import user-provided callback URLs or token JSON
+- manage eligible synced accounts
+- run controlled preflight and sync tasks
+- download generated artifacts by file type
+- inspect latest sync results and persisted history
+- review push results with clear status badges
+- configure scheduled sync policy
 
-- add `tests/test_idp_team_automation_safe.py`
-- add `frontend/tests/idp-team-automation.test.mjs`
+### Backend workflow
 
-## Design Notes
+Added a dedicated ITA application module and API surface:
 
-This integration is intentionally limited to safe mode:
+- `src/application/idp_team_automation.py`
+- `src/api/idp_team_automation.py`
 
-- only user-provided callback URLs or token JSON are accepted
-- the backend does not run `run_batch_tui.py` or `run_idp_codex.py`
-- sync tasks only process managed accounts already stored in the local account repository
-- secrets are not echoed back in task payloads, logs, history, or page responses
+Added task entrypoints:
 
-## Behavior Changes
+- `POST /api/tasks/idp-team-automation/preflight`
+- `POST /api/tasks/idp-team-automation/sync`
 
-### Authorized import
+Added ITA support across:
 
-Admins can import callback URL or token JSON into the existing account repository and mark the account as ITA-managed.
+- `main.py`
+- `src/api/task_commands.py`
+- `src/application/task_commands.py`
+- `src/application/tasks.py`
+- `src/core/scheduler.py`
+- `src/infrastructure/config_repository.py`
 
-### Controlled sync
+### Push result statuses
 
-Admins can run a sync task that:
-
-- exports Sub2API artifacts
-- exports Any2API artifacts
-- optionally pushes to Sub2API
-
-### Real push result semantics
-
-Push results are now explicit:
+Sub2API push results now distinguish between:
 
 - `created`
 - `updated`
 - `failed`
 
-The page renders these as colored badges in both:
+The UI renders these with explicit colored badges in both:
 
 - `最近同步结果`
 - `同步历史`
 
-### Sync history persistence
+### Persisted sync history
 
-Sync results are persisted through the existing `tasks` table and exposed through a dedicated history endpoint, so page refresh does not lose the result.
+Sync results are now persisted through the existing task system and exposed through:
+
+- `GET /api/idp-team-automation/history`
+
+This keeps push results, artifact links, and status details available after refresh and across later page visits.
 
 ### Scheduled policy
 
-Admins can configure a controlled scheduled sync policy for `all_managed` accounts.
+Added controlled scheduled sync policy APIs:
+
+- `GET /api/idp-team-automation/policy`
+- `PUT /api/idp-team-automation/policy`
+
+The scheduler now checks ITA policy and creates controlled sync tasks when due.
+
+### Docs and repo hygiene
+
+Added:
+
+- ITA feature documentation
+- ITA integration change notes
+- this PR draft document
+
+Also updated `.gitignore` to exclude local test and cache artifacts, and removed the tracked local-only pytest result file from version control.
+
+## Safety Boundaries
+
+This integration is intentionally limited to safe mode.
+
+It does **not**:
+
+- run `run_batch_tui.py`
+- run `run_idp_codex.py`
+- bypass user authorization
+- auto-acquire unauthorized OAuth credentials
+- expose secrets in task payloads, logs, history, or page responses
+
+It only operates on already imported, already authorized managed accounts.
 
 ## API Additions
 
@@ -97,7 +131,7 @@ Admins can configure a controlled scheduled sync policy for `all_managed` accoun
 
 ## Verification
 
-Local verification completed:
+Local verification:
 
 - `python -m pytest tests/test_idp_team_automation_safe.py -q`
 - `node frontend/tests/idp-team-automation.test.mjs`
@@ -105,11 +139,12 @@ Local verification completed:
 
 Live verification completed after deployment:
 
-- triggered a real controlled sync
+- triggered a real controlled sync from the deployed page
 - produced one real `updated` push result
 - produced one real `failed` push result
-- verified the badges on the live page
-- verified persisted history after page refresh
+- verified status badges in `最近同步结果`
+- verified status badges in `同步历史`
+- verified persisted history after refresh
 - verified artifact download button behavior
 
 Live verification task:
@@ -118,11 +153,17 @@ Live verification task:
 task_1780930698259_64f14f
 ```
 
+## Included Commits
+
+- `e3d7703` `feat: add safe IDP Team Automation admin workflow`
+- `46ed5d8` `docs: add ITA integration notes and PR draft`
+- `7c96d26` `chore: ignore local test cache artifacts`
+
 ## Risks / Limitations
 
 - scheduling currently supports only `all_managed`
-- the system still depends on manual import of already-authorized credentials
-- upstream high-risk automation entrypoints remain intentionally blocked
+- the system still depends on manual import of already authorized credentials
+- high-risk upstream automation entrypoints remain intentionally blocked
 
 ## Follow-ups
 
