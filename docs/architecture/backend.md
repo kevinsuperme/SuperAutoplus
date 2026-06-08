@@ -24,6 +24,7 @@
 | `api.bitbrowser_profiles` | `/api/bitbrowser/profiles` | BitBrowser profile 池配置 |
 | `api.config` | `/api/config` | 全局配置读写和选项 |
 | `api.health` | `/api/health`, `/api/ready` | 健康检查和就绪检查 |
+| `api.idp_team_automation` | `/api/idp-team-automation` | ITA 仓库状态、受管账号、同步历史、策略和工件下载 |
 | `api.lifecycle` | `/api/lifecycle` | 生命周期检查、刷新、预警触发 |
 | `api.luckmail_client` | `/api/luckmail/client/code` | LuckMail 公开客户验证码查询 |
 | `api.pix_gpt_plus` | `/api/pix-gpt-plus` | 后台 PIX 批量生成和公开 PXL 客户开通 |
@@ -47,6 +48,7 @@
 - `accounts.py`, `account_exports.py`, `account_checks.py`: 账号资产展示、更新、导出和检测。
 - `tasks.py`, `task_commands.py`, `tasks_query.py`: 持久化任务创建、claim、执行、日志、取消和查询。
 - `pix_gpt_plus.py`: Nerver PIX 调用、后台批量模式、公开 CKD 客户模式。
+- `idp_team_automation.py`: ITA safe mode 集成、授权导入、受控同步、同步历史和定时策略。
 - `luckmail_client.py`: 客户粘贴文本解析、LuckMail token 查询和脱敏响应。
 - `ctf_plus.py`: CTF Plus 账号按需注册、域名绑定和用户管理。
 - `gopay_pay_chatgpt.py`: GoPay 协议付款 ChatGPT Plus 批量支付。
@@ -75,6 +77,8 @@
 - `phone_bind`
 - `codex_oauth`
 - `gopay_pay_chatgpt`
+- `idp_team_automation_preflight`
+- `idp_team_automation_sync`
 
 任务状态：
 

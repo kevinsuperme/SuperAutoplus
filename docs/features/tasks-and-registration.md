@@ -146,6 +146,55 @@ POST /api/tasks/gopay-pay-chatgpt
 
 执行逻辑在 `src/application/tasks.py` 和 `src/application/gopay_pay_chatgpt.py`，GoPay 运行代码位于 `src/platforms/gopay/` 和 `src/platforms/gopay-deploy/`，历史协议研究资料归档在 `docs/archives/gopay-protocol-research/`。
 
+## IDP Team Automation 受控任务
+
+ITA 后台受控任务入口：
+
+```text
+POST /api/tasks/idp-team-automation/preflight
+POST /api/tasks/idp-team-automation/sync
+```
+
+两类任务都通过现有 `TaskRuntime` 执行。
+
+### 预检任务
+
+预检任务只做安全检查，不会触发账号生成或自动 OAuth。当前预检会：
+
+- 检查 ITA 仓库目录是否存在
+- 检查 `pyproject.toml`、`README.md`、`tests/` 等必需文件
+- 可选执行 `python -m pytest -q`
+- 固定记录 safe mode 边界
+
+### 同步任务
+
+同步任务只处理已经导入授权凭据的受管账号，支持：
+
+- 生成 Sub2API 工件
+- 生成 Any2API 工件
+- 推送到 Sub2API
+
+同步执行器位于：
+
+```text
+src/application/idp_team_automation.py::IdpTeamAutomationSyncRunner
+```
+
+结果会写入：
+
+- 任务结果 `task.result_json.data`
+- 账号 overview 的 `idp_team_automation` 节点
+
+### 同步历史
+
+ITA 同步历史并不使用独立存储，而是直接从：
+
+```text
+type == idp_team_automation_sync
+```
+
+的任务结果中反查，因此页面刷新后仍能继续查看工件和推送结果。
+
 ## 任务日志
 
 任务过程日志写入 `task_events`，前端通过：

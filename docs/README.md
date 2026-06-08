@@ -15,12 +15,16 @@
 - 功能说明
   - [任务与注册流程](features/tasks-and-registration.md)
   - [公开客户页面](features/public-client-pages.md)
+  - [IDP Team Automation](features/idp-team-automation.md)
 - 开发、部署与测试
   - [开发指南](development/setup.md)
   - [服务器与 Docker 部署](deployment/server.md)
   - [验证与测试](testing/verification.md)
 - 参考
   - [源码结构索引](reference/source-map.md)
+- 变更说明
+  - [2026-06-09 ITA 集成变更说明](changes/2026-06-09-idp-team-automation-integration.md)
+  - [2026-06-09 ITA PR 描述稿](changes/2026-06-09-idp-team-automation-pr.md)
 - 需求/执行记录
   - [Superpowers specs](superpowers/specs/)
   - [Superpowers plans](superpowers/plans/)

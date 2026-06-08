@@ -72,6 +72,8 @@
 | POST | `/api/tasks/phone-bind` | `create_phone_bind_task` | 创建手机号绑定任务 |
 | POST | `/api/tasks/codex-oauth` | `create_codex_oauth_task` | 创建 Codex OAuth 任务 |
 | POST | `/api/tasks/gopay-pay-chatgpt` | `create_gopay_pay_chatgpt_task` | 创建 GoPay 付款 ChatGPT Plus 任务 |
+| POST | `/api/tasks/idp-team-automation/preflight` | `create_idp_team_automation_preflight_task` | 创建 ITA 安全预检任务 |
+| POST | `/api/tasks/idp-team-automation/sync` | `create_idp_team_automation_sync_task` | 创建 ITA 受控同步任务 |
 | POST | `/api/tasks/{task_id}/cancel` | `cancel_task` | 请求取消任务 |
 | GET | `/api/tasks/{task_id}/logs/stream` | `stream_logs` | SSE 任务日志流 |
 | GET | `/api/tasks` | `list_tasks` | 任务列表 |
@@ -238,3 +240,15 @@
 | POST | `/api/lifecycle/refresh` | `trigger_token_refresh` | 触发 token 刷新 |
 | POST | `/api/lifecycle/warn` | `trigger_expiry_warning` | 触发过期预警 |
 | GET | `/api/lifecycle/status` | `lifecycle_status` | 生命周期状态 |
+
+## IDP Team Automation
+
+| 方法 | 路径 | 处理函数 | 说明 |
+| --- | --- | --- | --- |
+| GET | `/api/idp-team-automation/status` | `get_idp_team_automation_status` | 获取 ITA 仓库状态和受管账号统计 |
+| GET | `/api/idp-team-automation/accounts` | `get_idp_team_automation_accounts` | 获取受管账号列表 |
+| GET | `/api/idp-team-automation/history` | `get_idp_team_automation_history` | 获取受控同步历史 |
+| GET | `/api/idp-team-automation/policy` | `get_idp_team_automation_policy` | 获取定时同步策略 |
+| PUT | `/api/idp-team-automation/policy` | `put_idp_team_automation_policy` | 保存定时同步策略 |
+| POST | `/api/idp-team-automation/authorized-import` | `import_idp_team_automation_authorized_payload` | 导入 callback URL 或 token JSON |
+| GET | `/api/idp-team-automation/artifacts/{task_id}` | `download_idp_team_automation_artifact` | 下载某次同步生成的工件 |
