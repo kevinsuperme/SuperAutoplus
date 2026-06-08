@@ -10,6 +10,22 @@ dist/
 build/
 _debug_*.py
 
+# Test / coverage caches
+.pytest_cache/
+**/.pytest_cache/
+.hypothesis/
+.mypy_cache/
+.ruff_cache/
+.tox/
+.nox/
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+playwright-report/
+test-results/
+pytest-file-results*.json
+
 # 数据库
 *.db
 *.db-journal
