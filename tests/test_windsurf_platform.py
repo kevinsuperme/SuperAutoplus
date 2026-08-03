@@ -488,7 +488,7 @@ def test_local_solver_surfaces_unsolvable_error(monkeypatch):
 
     calls = {"count": 0}
 
-    def fake_get(url, params=None, timeout=0):
+    def fake_get(url, params=None, timeout=0, headers=None):
         calls["count"] += 1
         if url.endswith("/turnstile"):
             return FakeResponse({"taskId": "task-123"})

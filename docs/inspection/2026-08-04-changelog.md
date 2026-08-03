@@ -130,10 +130,12 @@ async def _authenticate_request():
 
 | 验证项 | 结果 |
 |--------|------|
-| 全量回归测试（`tests/`） | 通过（详见本次 commit CI） |
+| 全量回归测试（`tests/`，741 项） | 741 passed |
 | 关键路径专项测试（solver/gopay/otp/payment，119 项） | 119 passed |
 | 修复点静态验证（20 项检查） | 20/20 PASS |
 | 修改文件语法编译 | COMPILE_OK |
+
+> 回归适配：`tests/test_windsurf_platform.py` 中 `fake_get` mock 签名新增 `headers=None` 参数，以兼容 `local_solver.py` 新增的 `X-API-Key` 请求头透传。
 
 ---
 
