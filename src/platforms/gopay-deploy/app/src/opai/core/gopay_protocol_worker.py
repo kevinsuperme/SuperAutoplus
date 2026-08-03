@@ -475,7 +475,7 @@ def _register_one(api_key: str, pin: str, proxy: str, envelope_did: str,
         if not otp:
             log.error("[%s] Signup OTP timeout", phone)
             return None
-        log.info("[%s] Signup OTP: %s", phone, otp)
+        log.info("[%s] Signup OTP: %s", phone, "***")
 
         # === Phase 3: cvs_verify ===
         time.sleep(2)
@@ -1648,7 +1648,7 @@ def main():
         envelope_did = _get_envelope_did()
         result = _register_one(api_key, args.pin, proxy, envelope_did)
         if result:
-            log.info("SUCCESS: %s pin=%s", result["phone"], args.pin)
+            log.info("SUCCESS: %s pin=%s", result["phone"], "***")
             sms_done(api_key, result["aid"])
         else:
             log.error("FAILED")

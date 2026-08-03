@@ -4,6 +4,7 @@ CPA (Codex Protocol API) 上传功能
 
 import json
 import base64
+import os
 import logging
 from typing import Tuple
 from datetime import datetime, timezone, timedelta
@@ -12,6 +13,9 @@ from curl_cffi import requests as cffi_requests
 
 logger = logging.getLogger(__name__)
 CPA_TIMEZONE = timezone(timedelta(hours=8))
+# CPA / Team Manager 上传端点是否校验 TLS 证书。默认校验；
+# 自签内网部署可设 OPAI_CPA_VERIFY_SSL=0 关闭。
+CPA_VERIFY_SSL = os.getenv("OPAI_CPA_VERIFY_SSL", "1") != "0"
 
 
 def _decode_jwt_payload(token: str) -> dict:
@@ -134,7 +138,7 @@ def generate_token_json(account) -> dict:
                 "https://chatgpt.com/backend-api/me",
                 headers={"authorization": f"Bearer {access_token}",
                          "accept": "application/json"},
-                proxies=None, verify=False, timeout=15,
+                proxies=None, verify=True, timeout=15,
                 impersonate="chrome110",
             )
             logger.info(f"[CPA] /backend-api/me status={resp.status_code}")
@@ -241,7 +245,7 @@ def upload_to_cpa(
             headers=headers,
             data=file_content.encode("utf-8"),
             proxies=None,
-            verify=False,
+            verify=CPA_VERIFY_SSL,
             timeout=30,
             impersonate="chrome110",
         )
@@ -290,7 +294,7 @@ def upload_to_team_manager(
     }
     try:
         resp = cffi_requests.post(url, headers=headers, json=payload,
-                                  proxies=None, verify=False, timeout=30,
+                                  proxies=None, verify=CPA_VERIFY_SSL, timeout=30,
                                   impersonate="chrome110")
         if resp.status_code in (200, 201):
             return True, "上传成功"
@@ -318,7 +322,7 @@ def test_cpa_connection(api_url: str, api_token: str, proxy: str = None) -> Tupl
     headers = {"Authorization": f"Bearer {api_token}"}
     try:
         response = cffi_requests.options(test_url, headers=headers,
-                                         proxies=None, verify=False,
+                                         proxies=None, verify=CPA_VERIFY_SSL,
                                          timeout=10, impersonate="chrome110")
         if response.status_code in (200, 204, 401, 403, 405):
             if response.status_code == 401:

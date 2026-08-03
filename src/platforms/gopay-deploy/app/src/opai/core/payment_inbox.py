@@ -540,7 +540,7 @@ class InboxStore:
 
         order_sql = "ASC" if prefer_oldest else "DESC"
         pp_filter = "AND (paypal_url != '' OR provider_url != '')" if prefer_paypal_url else ""
-        provider_filter = f"AND provider = '{provider}'" if provider else ""
+        provider_filter = "AND provider = ?" if provider else ""
 
         sql = f"""
             UPDATE jobs SET claimed_at = ?
@@ -553,7 +553,11 @@ class InboxStore:
             )
             RETURNING *
         """
-        row = c.execute(sql, (now_iso, cutoff_iso)).fetchone()
+        params: list = [now_iso]
+        if provider:
+            params.append(provider)
+        params.append(cutoff_iso)
+        row = c.execute(sql, tuple(params)).fetchone()
         return dict(row) if row else None
 
     def set_status_if_pending(
@@ -1063,7 +1067,7 @@ class _OTPBox:
                 e for e in self._codes[phone]
                 if now - e["ts"] < self.OTP_TTL
             ][-10:]
-        log.info("otp_box: pushed code=%s for phone=%s", code, phone)
+        log.info("otp_box: pushed code=%s for phone=%s", "***", phone)
 
     def pop(self, phone: str, after_ts: float = 0) -> str | None:
         import time as _t
@@ -1448,7 +1452,7 @@ class _InboxHandler(BaseHTTPRequestHandler):
                 self._send_json(HTTPStatus.SERVICE_UNAVAILABLE, {"error": "otp_box not initialized"})
                 return
             otp_box.push(phone, code)
-            self._send_json(HTTPStatus.OK, {"ok": True, "phone": phone, "code": code})
+            self._send_json(HTTPStatus.OK, {"ok": True, "phone": phone})
             return
         self._send_text(HTTPStatus.NOT_FOUND, "not found")
 

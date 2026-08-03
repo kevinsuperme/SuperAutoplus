@@ -1,0 +1,930 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SRRI - Stripe Radar Risk Inspector</title>
+<style>
+  :root {
+    --bg: #0d1117; --surface: #161b22; --surface2: #1c2333; --border: #30363d;
+    --text: #e6edf3; --text-dim: #8b949e; --green: #3fb950; --yellow: #d29922;
+    --red: #f85149; --blue: #58a6ff; --purple: #bc8cff;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    background: var(--bg); color: var(--text); line-height: 1.6; min-height: 100vh;
+  }
+  .container { max-width: 900px; margin: 0 auto; padding: 24px 20px 60px; }
+  header { text-align: center; padding: 32px 0 28px; }
+  header h1 { font-size: 26px; font-weight: 700; letter-spacing: -0.5px; }
+  header h1 span { color: var(--blue); }
+  header p { color: var(--text-dim); font-size: 14px; margin-top: 6px; }
+  .gauge-section { text-align: center; margin: 28px 0; }
+  .gauge-wrap { display: inline-block; position: relative; width: 200px; height: 120px; }
+  .gauge-svg { width: 100%; height: 100%; }
+  .gauge-value {
+    position: absolute; bottom: 0; left: 50%; transform: translateX(-50%);
+    text-align: center;
+  }
+  .gauge-num { font-size: 42px; font-weight: 800; line-height: 1; }
+  .gauge-label { font-size: 13px; color: var(--text-dim); margin-top: 2px; }
+  .scan-btn {
+    display: block; margin: 20px auto; padding: 14px 48px;
+    background: var(--blue); color: #fff; border: none; border-radius: 10px;
+    font-size: 16px; font-weight: 600; cursor: pointer; transition: all .2s;
+  }
+  .scan-btn:hover { background: #79c0ff; transform: translateY(-1px); }
+  .scan-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+  .card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 12px; padding: 20px; margin-bottom: 16px;
+  }
+  .card-title {
+    font-size: 14px; font-weight: 600; color: var(--text-dim);
+    text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 14px;
+  }
+  .check-item {
+    display: flex; align-items: flex-start; gap: 12px;
+    padding: 10px 0; border-bottom: 1px solid var(--border);
+  }
+  .check-item:last-child { border-bottom: none; }
+  .check-icon { font-size: 18px; flex-shrink: 0; width: 24px; text-align: center; }
+  .check-body { flex: 1; }
+  .check-name { font-weight: 600; font-size: 14px; }
+  .check-detail { font-size: 13px; color: var(--text-dim); margin-top: 2px; }
+  .check-detail code {
+    background: var(--surface2); padding: 1px 6px; border-radius: 4px;
+    font-size: 12px; color: var(--purple);
+  }
+  .rx-item {
+    display: flex; gap: 14px; padding: 14px;
+    background: var(--surface2); border-radius: 8px; margin-bottom: 10px;
+    border-left: 3px solid var(--border);
+  }
+  .rx-item.critical { border-left-color: var(--red); }
+  .rx-item.warning { border-left-color: var(--yellow); }
+  .rx-item.info { border-left-color: var(--blue); }
+  .rx-item.success { border-left-color: var(--green); }
+  .rx-num { font-size: 18px; font-weight: 700; color: var(--text-dim); flex-shrink: 0; }
+  .rx-text { font-size: 14px; }
+  .rx-text strong { color: var(--text); }
+  .rx-text .tag {
+    display: inline-block; padding: 1px 8px; border-radius: 4px;
+    font-size: 11px; font-weight: 600; margin-left: 6px;
+  }
+  .tag.critical { background: rgba(248,81,73,.15); color: var(--red); }
+  .tag.warning { background: rgba(210,153,34,.15); color: var(--yellow); }
+  .tag.info { background: rgba(88,166,255,.15); color: var(--blue); }
+  .tag.success { background: rgba(63,185,80,.15); color: var(--green); }
+  .bin-row { display: flex; gap: 10px; }
+  .bin-input {
+    flex: 1; background: var(--surface2); border: 1px solid var(--border);
+    color: var(--text); padding: 10px 14px; border-radius: 8px;
+    font-size: 16px; font-family: monospace; letter-spacing: 2px;
+  }
+  .bin-input:focus { outline: none; border-color: var(--blue); }
+  .bin-btn {
+    background: var(--surface2); border: 1px solid var(--border); color: var(--text);
+    padding: 10px 20px; border-radius: 8px; cursor: pointer; font-size: 14px;
+  }
+  .bin-btn:hover { border-color: var(--blue); }
+  .retry-list { max-height: 200px; overflow-y: auto; }
+  .retry-entry {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 13px;
+  }
+  .retry-entry:last-child { border-bottom: none; }
+  .retry-time { color: var(--text-dim); }
+  .retry-badge {
+    padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600;
+  }
+  .retry-badge.fail { background: rgba(248,81,73,.15); color: var(--red); }
+  .retry-badge.success { background: rgba(63,185,80,.15); color: var(--green); }
+  .cooldown-banner {
+    background: rgba(248,81,73,.1); border: 1px solid var(--red);
+    border-radius: 8px; padding: 14px; text-align: center; margin-top: 12px;
+  }
+  .cooldown-timer { font-size: 28px; font-weight: 700; color: var(--red); }
+  .hidden { display: none; }
+  .spinner {
+    display: inline-block; width: 16px; height: 16px;
+    border: 2px solid var(--border); border-top-color: var(--blue);
+    border-radius: 50%; animation: spin .8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .log-btn {
+    background: var(--surface2); border: 1px solid var(--border); color: var(--text);
+    padding: 8px 16px; border-radius: 8px; cursor: pointer; font-size: 13px;
+  }
+  .log-btn:hover { border-color: var(--red); color: var(--red); }
+  footer { text-align: center; color: var(--text-dim); font-size: 12px; margin-top: 32px; }
+  .disclaimer {
+    background: var(--surface2); border-radius: 8px; padding: 14px;
+    font-size: 12px; color: var(--text-dim); margin-top: 20px; line-height: 1.7;
+  }
+  .addr-field {
+    display: flex; align-items: center; gap: 8px;
+    padding: 8px 0; border-bottom: 1px solid var(--border);
+  }
+  .addr-field:last-child { border-bottom: none; }
+  .addr-label { font-size: 12px; color: var(--text-dim); width: 90px; flex-shrink: 0; text-transform: uppercase; letter-spacing: .3px; }
+  .addr-value { flex: 1; font-size: 14px; font-family: monospace; }
+  .addr-copy {
+    background: var(--surface2); border: 1px solid var(--border); color: var(--text-dim);
+    padding: 3px 10px; border-radius: 4px; cursor: pointer; font-size: 12px;
+    transition: all .2s; flex-shrink: 0;
+  }
+  .addr-copy:hover { border-color: var(--blue); color: var(--blue); }
+  .addr-copy.copied { background: var(--green); border-color: var(--green); color: #fff; }
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <h1>Stripe Radar <span>Risk Inspector</span></h1>
+    <p>支付前环境诊断 / 风控信号检测 / 最优路径推荐</p>
+  </header>
+  <div class="gauge-section">
+    <div class="gauge-wrap">
+      <svg class="gauge-svg" viewBox="0 0 200 120">
+        <path d="M 20 110 A 80 80 0 0 1 180 110" fill="none" stroke="#30363d" stroke-width="14" stroke-linecap="round"/>
+        <path id="gaugeArc" d="M 20 110 A 80 80 0 0 1 180 110" fill="none" stroke="#3fb950" stroke-width="14" stroke-linecap="round"
+              stroke-dasharray="0 251" style="transition: stroke-dasharray .6s ease, stroke .3s;"/>
+      </svg>
+      <div class="gauge-value">
+        <div class="gauge-num" id="gaugeNum">-</div>
+        <div class="gauge-label" id="gaugeLabel">等待扫描</div>
+      </div>
+    </div>
+  </div>
+  <button class="scan-btn" id="scanBtn">🔍 开始环境诊断</button>
+  <div id="billingSection" style="text-align:center;margin:20px 0;">
+    <label style="font-size:13px;color:#8b949e;margin-right:8px;">卡账单国家代码：</label>
+    <input type="text" id="billingCC" placeholder="US / CN / HK / JP..." maxlength="3"
+      style="background:#1c2333;border:1px solid #30363d;color:#e6edf3;padding:6px 12px;border-radius:6px;font-size:14px;width:80px;text-align:center;text-transform:uppercase;">
+    <span style="font-size:12px;color:#8b949e;margin-left:8px;">（用于检测 IP 与卡地区是否匹配）</span>
+</div>
+<div id="resultsSection" class="hidden">
+    <div class="card">
+      <div class="card-title">📡 环境信号检测</div>
+      <div id="envChecks"></div>
+    </div>
+    <div class="card">
+      <div class="card-title">💳 卡 BIN 分析</div>
+      <div class="bin-row">
+        <input class="bin-input" id="binInput" placeholder="输入卡号前 6-8 位" maxlength="8">
+        <button class="bin-btn" id="binBtn">查询</button>
+      </div>
+      <div id="binResult" style="margin-top: 12px;"></div>
+    </div>
+    <div class="card">
+      <div class="card-title">🏠 账单地址生成器（IP 匹配）</div>
+      <div style="margin-bottom:14px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+        <label style="font-size:13px;color:var(--text-dim);">目标国家：</label>
+        <select id="addrCountry" style="background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:6px 10px;border-radius:6px;font-size:13px;">
+          <option value="">-- 诊断后自动选择 --</option>
+          <option value="US">🇺🇸 United States</option>
+          <option value="GB">🇬🇧 United Kingdom</option>
+          <option value="CA">🇨🇦 Canada</option>
+          <option value="JP">🇯🇵 Japan</option>
+          <option value="HK">🇭🇰 Hong Kong</option>
+          <option value="SG">🇸🇬 Singapore</option>
+          <option value="AU">🇦🇺 Australia</option>
+          <option value="DE">🇩🇪 Germany</option>
+          <option value="FR">🇫🇷 France</option>
+          <option value="NL">🇳🇱 Netherlands</option>
+        </select>
+        <button class="bin-btn" id="addrGenBtn" style="background:var(--blue);color:#fff;border:none;">🎲 生成地址</button>
+        <button class="bin-btn" id="addrCopyAllBtn">📋 复制全部</button>
+        <span id="addrMatchBadge" style="font-size:12px;"></span>
+      </div>
+      <div id="addrResult"></div>
+    </div>
+    <div class="card">
+      <div class="card-title">🎯 行动建议（按优先级）</div>
+      <div id="prescriptions"></div>
+    </div>
+    <div class="card">
+      <div class="card-title">
+        🔄 重试追踪器
+        <span style="float:right;font-weight:400;">
+          <button class="log-btn" id="logSuccess">✓ 记录成功</button>
+          <button class="log-btn" id="logFail" style="margin:0 6px;">✗ 记录失败</button>
+          <button class="log-btn" id="clearLog">清除</button>
+        </span>
+      </div>
+      <div id="retryTracker"></div>
+    </div>
+    <div class="disclaimer">
+      <strong>⚠️ 工具说明：</strong>本工具在浏览器本地运行所有检测，不收集、不上传任何用户数据。
+      BIN 查询仅发送卡号前 6-8 位（不含完整卡号）。本工具不修改 Stripe 的风控判断，
+      仅帮助你在支付前识别环境不一致并修复，降低误触发风控的概率。
+    </div>
+  </div>
+  <footer>SRRI v1.0 · 本地运行 · 零数据上传</footer>
+</div><script>
+// ============================================================
+// SRRI - Stripe Radar Risk Inspector
+// ============================================================
+const RESULTS = {
+  ip: null, vpn: null, tz: null, lang: null, webrtc: null, bin: null,
+  attempts: JSON.parse(localStorage.getItem("srri_attempts") || "[]")
+};
+
+const WEIGHTS = {
+  ipRegionMismatch: 35, datacenterIP: 25, binRegionMismatch: 20,
+  tzMismatch: 10, langMismatch: 10, velocity: 10, webrtcLeak: 15
+};
+
+const COUNTRY_TIMEZONES = {
+  US: "America/", CN: "Asia/Shanghai", HK: "Asia/Hong_Kong",
+  TW: "Asia/Taipei", JP: "Asia/Tokyo", KR: "Asia/Seoul",
+  SG: "Asia/Singapore", GB: "Europe/London", DE: "Europe/Berlin",
+  FR: "Europe/Paris", NL: "Europe/Amsterdam", AU: "Australia/",
+  CA: "America/", IN: "Asia/Kolkata", BR: "America/Sao_Paulo",
+  PH: "Asia/Manila", TH: "Asia/Bangkok", VN: "Asia/Ho_Chi_Minh",
+  MY: "Asia/Kuala_Lumpur", ID: "Asia/Jakarta", AE: "Asia/Dubai",
+  RU: "Europe/Moscow", TR: "Europe/Istanbul"
+};
+
+const COUNTRY_LANGS = {
+  US: "en", CN: "zh", HK: "zh", TW: "zh", JP: "ja", KR: "ko",
+  SG: "en", GB: "en", DE: "de", FR: "fr", NL: "nl", AU: "en",
+  CA: "en", IN: "en", BR: "pt", PH: "en", TH: "th", VN: "vi",
+  MY: "ms", ID: "id", AE: "ar", RU: "ru", TR: "tr"
+};
+
+// --- Module 1: IP Detection ---
+async function detectIP() {
+  try {
+    const resp = await fetch("https://ipwho.is/");
+    const data = await resp.json();
+    if (!data.success) throw new Error(data.message || "API error");
+    const ispStr = (data.connection && (data.connection.isp || data.connection.org)) || "Unknown";
+    const isHosting = /hosting|cloud|datacenter|server|amazon|google|microsoft|digitalocean|vultr|linode|ovh|aws|azure/i.test(ispStr);
+    return {
+      ip: data.ip, country: data.country || "Unknown",
+      countryCode: data.country_code || "", region: data.region || "",
+      city: data.city || "", isp: ispStr, isHosting: isHosting
+    };
+  } catch(e) {
+    try {
+      const resp = await fetch("https://ipapi.co/json/");
+      const data = await resp.json();
+      const ispStr = data.org || data.isp || "Unknown";
+      const isHosting = /hosting|cloud|datacenter|server|amazon|google|microsoft|digitalocean|vultr|linode|ovh|aws|azure/i.test(ispStr);
+      return {
+        ip: data.ip, country: data.country_name || "Unknown",
+        countryCode: data.country_code || "", region: data.region || "",
+        city: data.city || "", isp: ispStr, isHosting: isHosting
+      };
+    } catch(e2) {
+      return { ip: "Error", country: "检测失败", countryCode: "", region: "", city: "", isp: "", isHosting: false, error: true };
+    }
+  }
+}
+
+// --- Module 2: Timezone Check ---
+function checkTimezone(ipCountryCode) {
+  const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  const expectedPrefix = COUNTRY_TIMEZONES[ipCountryCode];
+  let match = true;
+  if (expectedPrefix) {
+    if (ipCountryCode === "US" || ipCountryCode === "CA" || ipCountryCode === "AU") {
+      match = tz.startsWith(expectedPrefix);
+    } else {
+      match = tz.toLowerCase().includes(expectedPrefix.toLowerCase().replace("/", ""));
+    }
+  }
+  return { tz: tz, match: match, expected: expectedPrefix || "N/A" };
+}
+
+// --- Module 3: Language Check ---
+function checkLanguage(ipCountryCode) {
+  const navLang = navigator.language.toLowerCase();
+  const expectedLang = COUNTRY_LANGS[ipCountryCode] || "";
+  let match = true;
+  if (expectedLang) match = navLang.startsWith(expectedLang);
+  return { lang: navLang, match: match, expected: expectedLang || "N/A" };
+}
+
+// --- Module 4: WebRTC Leak ---
+async function checkWebRTCLeak() {
+  return new Promise(function(resolve) {
+    try {
+      const pc = new RTCPeerConnection({ iceServers: [{ urls: "stun:stun.l.google.com:19302" }] });
+      const candidates = [];
+      pc.createDataChannel("");
+      const timeout = setTimeout(function() {
+        try { pc.close(); } catch(e){}
+        resolve({ leaked: candidates.length > 0, ips: candidates });
+      }, 3000);
+      pc.onicecandidate = function(e) {
+        if (e.candidate && e.candidate.candidate) {
+          const m = e.candidate.candidate.match(/(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})/);
+          if (m && !candidates.includes(m[1])) candidates.push(m[1]);
+        }
+        if (!e.candidate) {
+          clearTimeout(timeout);
+          try { pc.close(); } catch(err){}
+          resolve({ leaked: candidates.length > 0, ips: candidates });
+        }
+      };
+      pc.createOffer().then(function(o) { return pc.setLocalDescription(o); }).catch(function(){ resolve({leaked:false, ips:[], error:true}); });
+    } catch(e) {
+      resolve({ leaked: false, ips: [], error: true });
+    }
+  });
+}
+
+// --- Module 5: BIN Lookup ---
+async function lookupBIN(bin) {
+  try {
+    const resp = await fetch("https://binlist.io/lookup/" + bin + "/");
+    const data = await resp.json();
+    return {
+      scheme: data.scheme || "Unknown", type: data.type || "Unknown",
+      brand: data.brand || "", country: (data.country && data.country.name) || "Unknown",
+      countryCode: (data.country && data.country.alpha2) || "",
+      bank: (data.bank && data.bank.name) || "", prepaid: data.prepaid || false
+    };
+  } catch(e) {
+    try {
+      const resp = await fetch("https://data.handyapi.com/bin/" + bin);
+      const data = await resp.json();
+      return {
+        scheme: data.Scheme || "Unknown", type: data.CardType || "Unknown",
+        brand: "", country: data.Country || "Unknown",
+        countryCode: data.Issuer || "", bank: data.Bank || "", prepaid: false
+      };
+    } catch(e2) { return null; }
+  }
+}
+
+// --- Risk Scoring Engine ---
+function calculateRiskScore(checks, billingCountryInput) {
+  let score = 0;
+  const reasons = [];
+  const billingCC = (billingCountryInput || "").toUpperCase().trim();
+  if (billingCC && checks.ip && checks.ip.countryCode) {
+    if (billingCC !== checks.ip.countryCode) {
+      score += WEIGHTS.ipRegionMismatch;
+      reasons.push({ weight: WEIGHTS.ipRegionMismatch,
+        text: "IP 在 " + checks.ip.country + "，但卡账单地址在 " + billingCC, severity: "critical" });
+    }
+  }
+  if (checks.ip && checks.ip.isHosting) {
+    score += WEIGHTS.datacenterIP;
+    reasons.push({ weight: WEIGHTS.datacenterIP,
+      text: "IP 属于数据中心/托管服务：" + checks.ip.isp + " — VPN/代理 IP 是 Radar 拦截的首要信号", severity: "critical" });
+  }
+  if (checks.webrtc && checks.webrtc.leaked && checks.ip) {
+    const leakedNonLocal = checks.webrtc.ips.filter(function(ip) {
+      return !ip.startsWith("192.168") && !ip.startsWith("10.") && !ip.startsWith("172.");
+    });
+    if (leakedNonLocal.length > 0 && !leakedNonLocal.includes(checks.ip.ip)) {
+      score += WEIGHTS.webrtcLeak;
+      reasons.push({ weight: WEIGHTS.webrtcLeak,
+        text: "WebRTC 泄露真实 IP：" + leakedNonLocal.join(", ") + "，与出口 IP 不一致", severity: "critical" });
+    }
+  }
+  if (checks.tz && !checks.tz.match) {
+    score += WEIGHTS.tzMismatch;
+    reasons.push({ weight: WEIGHTS.tzMismatch,
+      text: "系统时区 " + checks.tz.tz + " 与 IP 地区不匹配", severity: "warning" });
+  }
+  if (checks.lang && !checks.lang.match) {
+    score += WEIGHTS.langMismatch;
+    reasons.push({ weight: WEIGHTS.langMismatch,
+      text: "浏览器语言 " + checks.lang.lang + " 与 IP 地区预期语言不匹配", severity: "warning" });
+  }
+  const recentAttempts = RESULTS.attempts.filter(function(a) { return Date.now() - a.ts < 86400000; });
+  if (recentAttempts.length >= 3) {
+    const velScore = Math.min(WEIGHTS.velocity * 2, recentAttempts.length * 4);
+    score += velScore;
+    reasons.push({ weight: velScore,
+      text: "24h 内已有 " + recentAttempts.length + " 次尝试记录，高频重试会推高 Radar 风险评分",
+      severity: recentAttempts.length >= 5 ? "critical" : "warning" });
+  }
+  return { score: Math.min(score, 100), reasons: reasons };
+}
+
+// --- Prescription Engine ---
+function generatePrescriptions(riskResult, checks) {
+  const rx = [];
+  const reasons = riskResult.reasons.sort(function(a, b) { return b.weight - a.weight; });
+  let stepNum = 1;
+  for (let i = 0; i < reasons.length; i++) {
+    const r = reasons[i];
+    if (r.severity !== "critical") continue;
+    let action = "";
+    if (r.text.indexOf("数据中心") >= 0 || r.text.indexOf("VPN") >= 0) {
+      action = "<strong>关闭 VPN/代理</strong>，或切换到与卡账单地址所在国匹配的住宅 IP 节点。共享 VPN 节点很可能已被 Stripe 拉黑。";
+    } else if (r.text.indexOf("IP 在") >= 0) {
+      action = "<strong>消除地区不一致</strong>：让 IP、卡账单地址、浏览器时区/语言三者指向同一个国家。";
+    } else if (r.text.indexOf("WebRTC") >= 0) {
+      action = "<strong>禁用 WebRTC</strong>：安装 WebRTC Control 扩展或在浏览器设置中关闭，防止真实 IP 泄露。";
+    } else if (r.text.indexOf("高频重试") >= 0) {
+      action = "<strong>停止重试</strong>，等待 24-48 小时让 Radar 风控评分自然衰减。";
+    }
+    if (action) rx.push({ num: stepNum++, action: action, severity: "critical", tag: "必须修复" });
+  }
+  for (let i = 0; i < reasons.length; i++) {
+    const r = reasons[i];
+    if (r.severity !== "warning") continue;
+    let action = "";
+    if (r.text.indexOf("时区") >= 0) action = "将系统/浏览器时区修改为与 IP 地区匹配的时区。";
+    else if (r.text.indexOf("语言") >= 0) action = "将浏览器首选语言设置为与 IP 地区匹配的语言。";
+    if (action) rx.push({ num: stepNum++, action: action, severity: "warning", tag: "建议修复" });
+  }
+  if (riskResult.score >= 40) {
+    rx.push({ num: stepNum++, severity: "info", tag: "替代方案",
+      action: "<strong>当前环境风险过高，直接支付大概率被拒。</strong>推荐绕过 Stripe 的替代路径：<br>1. <strong>iOS App Store 内购</strong>（成功率约 100%）：iPhone 下载 ChatGPT App 内部升级，走 Apple 支付<br>2. <strong>虚拟卡</strong>（成功率约 89%）：使用与当前 IP 区域匹配的虚拟卡（Wise/Revolut 等）<br>3. <strong>等待冷却后重试</strong>：修复以上问题后，等 24h 再用无痕模式尝试" });
+  } else if (riskResult.score >= 15) {
+    rx.push({ num: stepNum++, severity: "warning", tag: "注意",
+      action: "修复以上问题后用<strong>无痕模式</strong>重试。如修复后仍被拒，问题可能在<strong>银行端</strong> -- 打电话给发卡行要求白名单 OpenAI/Stripe 商户。" });
+  } else {
+    rx.push({ num: stepNum++, severity: "success", tag: "环境正常",
+      action: "当前环境信号基本一致，可以直接尝试支付。如果仍被拒，<strong>大概率是银行端拦截</strong>或<strong>卡类型限制</strong>（预付卡/借记卡）。" });
+  }
+  return rx;
+}
+
+// --- UI Rendering ---
+function updateGauge(score) {
+  const arc = document.getElementById("gaugeArc");
+  const num = document.getElementById("gaugeNum");
+  const label = document.getElementById("gaugeLabel");
+  const circumference = 251;
+  const dashLen = (score / 100) * circumference;
+  arc.setAttribute("stroke-dasharray", dashLen + " " + circumference);
+  let color = "#3fb950", text = "低风险";
+  if (score >= 40) { color = "#f85149"; text = "高风险"; }
+  else if (score >= 15) { color = "#d29922"; text = "中风险"; }
+  arc.style.stroke = color;
+  num.style.color = color;
+  num.textContent = score;
+  label.textContent = text + " / Stripe Radar 视角";
+}
+
+function esc(s) { return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+
+function renderEnvChecks(checks) {
+  const container = document.getElementById("envChecks");
+  const items = [];
+  const ipStatus = (checks.ip && checks.ip.error) ? "⚠️" : "✅";
+  const ipDetail = (checks.ip && checks.ip.error) ? "检测失败" :
+    "<code>" + esc(checks.ip.ip) + "</code> / " + esc(checks.ip.city) + ", " + esc(checks.ip.country) + " / ISP: " + esc(checks.ip.isp);
+  items.push({ icon: ipStatus, name: "出口 IP 地址", detail: ipDetail });
+  if (checks.ip && !checks.ip.error) {
+    const vpnStatus = checks.ip.isHosting ? "❌" : "✅";
+    const vpnDetail = checks.ip.isHosting ?
+      "检测到数据中心/VPN/代理 IP：<code>" + esc(checks.ip.isp) + "</code> -- Radar 拦截的首要信号" :
+      "住宅/商业 IP，未检测到 VPN/代理";
+    items.push({ icon: vpnStatus, name: "IP 类型（VPN 检测）", detail: vpnDetail });
+  }
+  const tzStatus = (checks.tz && checks.tz.match) ? "✅" : "⚠️";
+  items.push({ icon: tzStatus, name: "时区一致性",
+    detail: "系统时区: <code>" + esc(checks.tz.tz) + "</code> / IP 预期: <code>" + esc(checks.tz.expected) + "</code> " + (checks.tz.match ? "✓" : "✗") });
+  const langStatus = (checks.lang && checks.lang.match) ? "✅" : "⚠️";
+  items.push({ icon: langStatus, name: "语言一致性",
+    detail: "浏览器语言: <code>" + esc(checks.lang.lang) + "</code> / IP 预期: <code>" + esc(checks.lang.expected) + "</code> " + (checks.lang.match ? "✓" : "✗") });
+  const rtcStatus = (checks.webrtc && checks.webrtc.error) ? "➖" : ((checks.webrtc && checks.webrtc.leaked) ? "❌" : "✅");
+  const rtcDetail = (checks.webrtc && checks.webrtc.error) ? "检测不可用" :
+    ((checks.webrtc && checks.webrtc.leaked) ? "检测到 ICE 候选 IP: <code>" + esc(checks.webrtc.ips.join(", ")) + "</code>" : "未检测到 IP 泄露");
+  items.push({ icon: rtcStatus, name: "WebRTC 真实 IP 泄露", detail: rtcDetail });
+  container.innerHTML = items.map(function(i) {
+    return '<div class="check-item"><div class="check-icon">' + i.icon + '</div><div class="check-body"><div class="check-name">' + i.name + '</div><div class="check-detail">' + i.detail + "</div></div></div>";
+  }).join("");
+}
+
+function renderPrescriptions(rxList) {
+  const container = document.getElementById("prescriptions");
+  if (rxList.length === 0) { container.innerHTML = '<div style="color:#8b949e;font-size:14px;">无建议 -- 环境正常</div>'; return; }
+  container.innerHTML = rxList.map(function(rx) {
+    return '<div class="rx-item ' + rx.severity + '"><div class="rx-num">' + rx.num + '</div><div class="rx-text">' + rx.action + '<span class="tag ' + rx.severity + '">' + rx.tag + "</span></div></div>";
+  }).join("");
+}
+
+function renderRetryTracker() {
+  const container = document.getElementById("retryTracker");
+  const attempts = RESULTS.attempts;
+  const now = Date.now();
+  const recent24h = attempts.filter(function(a) { return now - a.ts < 86400000; });
+  let html = "";
+  if (recent24h.length >= 3) {
+    const oldestRecent = Math.min.apply(null, recent24h.map(function(a) { return a.ts; }));
+    const remaining = Math.max(0, oldestRecent + 86400000 - now);
+    const hrs = Math.floor(remaining / 3600000);
+    const mins = Math.floor((remaining % 3600000) / 60000);
+    html += '<div class="cooldown-banner"><div style="font-size:13px;margin-bottom:6px;">⛔ 高频重试锁定 -- 建议冷却时间剩余：</div><div class="cooldown-timer" id="cooldownTimer">' + hrs + "h " + mins + 'm</div><div style="font-size:12px;color:#8b949e;margin-top:4px;">24h 内 ' + recent24h.length + " 次尝试 -- 继续重试只会推高风险评分</div></div>";
+  }
+  if (attempts.length === 0) {
+    html += '<div style="color:#8b949e;font-size:13px;padding:8px 0;">暂无记录。支付后点上方按钮记录结果。</div>';
+  } else {
+    html += '<div class="retry-list">';
+    const sorted = attempts.slice().reverse().slice(0, 15);
+    for (let i = 0; i < sorted.length; i++) {
+      const a = sorted[i];
+      const dt = new Date(a.ts);
+      const timeStr = (dt.getMonth()+1) + "/" + dt.getDate() + " " + dt.getHours() + ":" + String(dt.getMinutes()).padStart(2, "0");
+      const ago = Math.floor((now - a.ts) / 3600000);
+      html += '<div class="retry-entry"><span class="retry-time">' + timeStr + " (" + ago + 'h前) ...' + esc(a.card || "????") + '</span><span class="retry-badge ' + (a.success ? "success" : "fail") + '">' + (a.success ? "✓ 成功" : "✗ 失败") + "</span></div>";
+    }
+    html += "</div>";
+  }
+  container.innerHTML = html;
+}
+
+// --- BIN Analysis ---
+async function analyzeBIN() {
+  const input = document.getElementById("binInput").value.trim();
+  const resultDiv = document.getElementById("binResult");
+  if (input.length < 6) { resultDiv.innerHTML = '<span style="color:#d29922;">请输入至少前 6 位</span>'; return; }
+  resultDiv.innerHTML = '<div class="spinner"></div> 查询中...';
+  const binInfo = await lookupBIN(input.substring(0, 8));
+  if (!binInfo) { resultDiv.innerHTML = '<span style="color:#f85149;">查询失败，请稍后重试</span>'; return; }
+  RESULTS.bin = binInfo;
+  let binMatchNote = "";
+  if (RESULTS.ip && RESULTS.ip.countryCode && binInfo.countryCode) {
+    if (RESULTS.ip.countryCode.toUpperCase() === binInfo.countryCode.toUpperCase()) {
+      binMatchNote = '<span style="color:#3fb950;">✓ 与 IP 地区匹配</span>';
+    } else {
+      binMatchNote = '<span style="color:#f85149;">✗ 卡发行国 (' + esc(binInfo.country) + ') ≠ IP 地区 (' + esc(RESULTS.ip.country) + ') -- 会触发 Radar 评分</span>';
+    }
+  }
+  let flags = [];
+  if (binInfo.prepaid) flags.push('<span style="color:#f85149;">预付卡 -- 无法用于订阅</span>');
+  if (binInfo.type && binInfo.type.toLowerCase().indexOf("debit") >= 0) flags.push('<span style="color:#d29922;">借记卡 -- 成功率低于信用卡 (~61% vs ~78%)</span>');
+  if (binInfo.type && binInfo.type.toLowerCase().indexOf("credit") >= 0) flags.push('<span style="color:#3fb950;">信用卡 -- 成功率较高</span>');
+  resultDiv.innerHTML = '<div class="check-item"><div class="check-icon">💳</div><div class="check-body"><div class="check-name">' + esc(binInfo.scheme.toUpperCase()) + " " + esc(binInfo.type || "") + " " + esc(binInfo.brand || "") + '</div><div class="check-detail">发行国: <code>' + esc(binInfo.country) + '</code> / 银行: <code>' + esc(binInfo.bank || "N/A") + "</code><br>" + binMatchNote + "<br>" + (flags.join("<br>") || "无明显风险标记") + "</div></div></div>";
+  recalculateAndRender();
+}
+
+// --- Retry Logging ---
+function logAttempt(success) {
+  const cardLast4 = window.prompt("输入卡号后 4 位（用于追踪，不会上传）：", "");
+  if (cardLast4 === null) return;
+  RESULTS.attempts.push({ ts: Date.now(), success: success, card: cardLast4.replace(/[^0-9]/g, "").substring(0, 4) });
+  localStorage.setItem("srri_attempts", JSON.stringify(RESULTS.attempts));
+  renderRetryTracker();
+  recalculateAndRender();
+}
+
+function clearRetries() {
+  RESULTS.attempts = [];
+  localStorage.removeItem("srri_attempts");
+  renderRetryTracker();
+  recalculateAndRender();
+}
+
+// --- Recalculate ---
+function recalculateAndRender() {
+  const checks = { ip: RESULTS.ip, tz: RESULTS.tz, lang: RESULTS.lang, webrtc: RESULTS.webrtc };
+  let billingCC = (document.getElementById("billingCC") ? document.getElementById("billingCC").value : "").toUpperCase().trim();
+  localStorage.setItem("srri_billing_cc", billingCC);
+  const risk = calculateRiskScore(checks, billingCC);
+  const rx = generatePrescriptions(risk, checks);
+  updateGauge(risk.score);
+  renderPrescriptions(rx);
+}
+
+// --- Main Entry: Full Diagnosis ---
+async function runFullDiagnosis() {
+  const btn = document.getElementById("scanBtn");
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> 诊断中...';
+  try {
+    const results = await Promise.all([detectIP(), checkWebRTCLeak()]);
+    RESULTS.ip = results[0];
+    RESULTS.webrtc = results[1];
+    if (!RESULTS.ip.error) {
+      RESULTS.tz = checkTimezone(RESULTS.ip.countryCode);
+      RESULTS.lang = checkLanguage(RESULTS.ip.countryCode);
+    } else {
+      RESULTS.tz = { tz: Intl.DateTimeFormat().resolvedOptions().timeZone, match: true, expected: "N/A" };
+      RESULTS.lang = { lang: navigator.language, match: true, expected: "N/A" };
+    }
+    document.getElementById("resultsSection").classList.remove("hidden");
+    renderEnvChecks(RESULTS);
+    localStorage.removeItem("srri_billing_cc");
+    if (RESULTS.ip && RESULTS.ip.countryCode) {
+      var sel = document.getElementById("addrCountry");
+      if (sel) sel.value = RESULTS.ip.countryCode;
+      handleAddrGen();
+    }
+    recalculateAndRender();
+    renderRetryTracker();
+    btn.innerHTML = "✅ 诊断完成 · 点击重新扫描";
+  } catch(e) {
+    btn.innerHTML = "❌ 诊断出错 · 点击重试";
+    console.error("Diagnosis error:", e);
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+// ============================================================
+// Address Generator Module
+// ============================================================
+
+// US States: { "Code": { name:"State", zips:["001","002"], cities:["City1","City2"] } }
+var US_STATES = {
+  "OR": { name:"Oregon", zips:["970","971","972","973","974","975","976","977","978"], cities:["Portland","Eugene","Salem","Gresham","Hillsboro","Beaverton","Bend","Medford","Springfield","Corvallis"] },
+  "WA": { name:"Washington", zips:["980","981","982","983","984","985","986","988","989","990","991","992","993","994"], cities:["Seattle","Spokane","Tacoma","Vancouver","Bellevue","Kent","Everett","Renton","Federal Way","Yakima"] },
+  "CA": { name:"California", zips:["900","901","902","903","904","905","906","907","908","910","911","912","913","914","915","916","917","918","919","920","921","922","923","924","925","926","927","928","930","931","932","933","934","935","936","937","938","939","940","941","942","943","944","945","946","947","948","949","950","951","952","953","954","955","956","957","958","959","960","961"], cities:["Los Angeles","San Diego","San Jose","San Francisco","Fresno","Sacramento","Long Beach","Oakland","Bakersfield","Anaheim","Santa Ana","Riverside","Stockton","Irvine","Chula Vista","Fremont","San Bernardino","Modesto","Oxnard","Fontana"] },
+  "NY": { name:"New York", zips:["100","101","102","103","104","105","106","107","108","109","110","111","112","113","114","115","116","117","118","119","120","121","122","123","124","125","126","127","128","129","130","131","132","133","134","135","136","137","138","139","140","141","142","143","144","145","146","147","148","149"], cities:["New York City","Buffalo","Rochester","Yonkers","Syracuse","Albany","New Rochelle","Mount Vernon","Schenectady","Utica","White Plains","Hempstead","Troy","Niagara Falls","Binghamton","Freeport","Valley Stream"] },
+  "TX": { name:"Texas", zips:["750","751","752","753","754","755","756","757","758","759","760","761","762","763","764","765","766","767","768","769","770","771","772","773","774","775","776","777","778","779","780","781","782","783","784","785","786","787","788","789","790","791","792","793","794","795","796","797","798","799"], cities:["Houston","San Antonio","Dallas","Austin","Fort Worth","El Paso","Arlington","Corpus Christi","Plano","Lubbock","Laredo","Garland","Irving","Frisco","McKinney","Amarillo","Brownsville","Pasadena","Mesquite"] },
+  "FL": { name:"Florida", zips:["320","321","322","323","324","325","326","327","328","329","330","331","332","333","334","335","336","337","338","339","341","342","344","346","347","349"], cities:["Jacksonville","Miami","Tampa","Orlando","St. Petersburg","Hialeah","Tallahassee","Fort Lauderdale","Port St. Lucie","Cape Coral","Pembroke Pines","Hollywood","Gainesville","Miramar","Coral Springs","Clearwater"] },
+  "IL": { name:"Illinois", zips:["600","601","602","603","604","605","606","607","608","609","610","611","612","613","614","615","616","617","618","619","620","622","623","624","625","626","627","628","629"], cities:["Chicago","Aurora","Rockford","Joliet","Naperville","Springfield","Peoria","Elgin","Waukegan","Champaign","Bloomington","Decatur","Evanston","Schaumburg"] },
+  "MA": { name:"Massachusetts", zips:["010","011","012","013","014","015","016","017","018","019","020","021","022","023","024","025","026","027"], cities:["Boston","Worcester","Springfield","Cambridge","Lowell","Brockton","Quincy","Lynn","New Bedford","Newton","Lawrence","Somerville","Framingham","Haverhill"] },
+  "PA": { name:"Pennsylvania", zips:["150","151","152","153","154","155","156","157","158","159","160","161","162","163","164","165","166","167","168","169","170","171","172","173","174","175","176","177","178","179","180","181","182","183","184","185","186","187","188","189","190","191","192","193","194","195","196"], cities:["Philadelphia","Pittsburgh","Allentown","Erie","Reading","Scranton","Bethlehem","Lancaster","Harrisburg","York","Altoona","Wilkes-Barre","State College"] },
+  "GA": { name:"Georgia", zips:["300","301","302","303","304","305","306","307","308","309","310","311","312","313","314","315","316","317","318","319","398"], cities:["Atlanta","Augusta","Columbus","Macon","Savannah","Athens","Sandy Springs","Roswell","Johns Creek","Albany","Warner Robins","Alpharetta","Marietta","Valdosta"] },
+  "OH": { name:"Ohio", zips:["430","431","432","433","434","435","436","437","438","439","440","441","442","443","444","445","446","447","448","449","450","451","452","453","454","455","456","457","458","459","460","461","462","463","464","465","466","467","468","469","470","471","472","473","474","475","476","477","478","479","480","481","482","483","484","485","486","487","488","489","490","491","492","493","494","495","496","497","498","499"], cities:["Columbus","Cleveland","Cincinnati","Toledo","Akron","Dayton","Parma","Canton","Youngstown","Lorain","Hamilton","Springfield","Kettering"] },
+  "NC": { name:"North Carolina", zips:["270","271","272","273","274","275","276","277","278","279","280","281","282","283","284","285","286","287","288","289"], cities:["Charlotte","Raleigh","Greensboro","Durham","Winston-Salem","Fayetteville","Cary","Wilmington","High Point","Greenville","Asheville","Concord","Gastonia"] },
+  "VA": { name:"Virginia", zips:["220","221","222","223","224","225","226","227","228","229","230","231","232","233","234","235","236","237","238","239","240","241","242","243","244","245","246","247","248","249","250","251","252","253","254","255","256","257","258","259","260","261","262","263","264","265","266","267","268","269"], cities:["Virginia Beach","Norfolk","Chesapeake","Richmond","Newport News","Alexandria","Hampton","Roanoke","Portsmouth","Suffolk","Lynchburg","Harrisonburg","Charlottesville"] },
+  "NJ": { name:"New Jersey", zips:["070","071","072","073","074","075","076","077","078","079","080","081","082","083","084","085","086","087","088","089"], cities:["Newark","Jersey City","Paterson","Elizabeth","Edison","Woodbridge","Lakewood","Toms River","Hamilton","Trenton","Clifton","Camden","Brick"] },
+  "MI": { name:"Michigan", zips:["480","481","482","483","484","485","486","487","488","489","490","491","492","493","494","495","496","497","498","499"], cities:["Detroit","Grand Rapids","Warren","Sterling Heights","Ann Arbor","Lansing","Flint","Dearborn","Livonia","Westland","Troy","Farmington Hills"] },
+  "AZ": { name:"Arizona", zips:["850","851","852","853","855","856","857","859","860","863","864","865"], cities:["Phoenix","Tucson","Mesa","Chandler","Scottsdale","Glendale","Gilbert","Tempe","Peoria","Surprise","Yuma","Avondale"] },
+  "CO": { name:"Colorado", zips:["800","801","802","803","804","805","806","807","808","809","810","811","812","813","814","815","816"], cities:["Denver","Colorado Springs","Aurora","Fort Collins","Lakewood","Thornton","Arvada","Westminster","Pueblo","Boulder","Centennial","Longmont"] },
+  "NV": { name:"Nevada", zips:["889","890","891","893","894","895","897","898"], cities:["Las Vegas","Henderson","Reno","North Las Vegas","Sparks","Carson City","Fernley","Elko"] },
+  "TN": { name:"Tennessee", zips:["370","371","372","373","374","375","376","377","378","379","380","381","382","383","384","385"], cities:["Nashville","Memphis","Knoxville","Chattanooga","Clarksville","Murfreesboro","Franklin","Jackson","Johnson City","Hendersonville"] },
+  "IN": { name:"Indiana", zips:["460","461","462","463","464","465","466","467","468","469","470","471","472","473","474","475","476","477","478","479"], cities:["Indianapolis","Fort Wayne","Evansville","South Bend","Carmel","Fishers","Bloomington","Hammond","Gary","Noblesville","Greenwood"] },
+  "MO": { name:"Missouri", zips:["630","631","633","634","635","636","637","638","639","640","641","644","645","646","647","648","649","650","651","652","653","654","655","656","657","658"], cities:["Kansas City","St. Louis","Springfield","Independence","Columbia","Lee's Summit","O'Fallon","St. Joseph","St. Charles","Blue Springs"] },
+  "MD": { name:"Maryland", zips:["206","207","208","209","210","211","212","214","215","216","217","218","219"], cities:["Baltimore","Frederick","Rockville","Gaithersburg","Bowie","Hagerstown","Annapolis","Salisbury","College Park","Greenbelt"] },
+  "WI": { name:"Wisconsin", zips:["530","531","532","534","535","537","538","539","540","541","542","543","544","545","546","547","548","549","550"], cities:["Milwaukee","Madison","Green Bay","Kenosha","Racine","Appleton","Waukesha","Eau Claire","Oshkosh","Janesville","West Allis"] },
+  "MN": { name:"Minnesota", zips:["550","551","553","554","555","556","557","558","559","560","561","562","563","564","565","566","567"], cities:["Minneapolis","Saint Paul","Rochester","Duluth","Bloomington","Brooklyn Park","Plymouth","Maple Grove","Woodbury","St. Cloud"] },
+  "CT": { name:"Connecticut", zips:["060","061","062","063","064","065","066","067","068","069"], cities:["Bridgeport","New Haven","Stamford","Hartford","Waterbury","Norwalk","Danbury","New Britain","Bristol","Meriden"] }
+};
+
+var US_STREETS = ["Main St","Oak Ave","Maple Dr","Cedar Ln","Pine St","Elm St","Washington Ave","Park Ave","Lake Dr","Hill Rd","Sunset Blvd","River Rd","Highland Ave","Forest Dr","Spring St","Church St","Mill Rd","Madison Ave","Jefferson St","Lincoln Way","Center St","School St","North St","South St","East Ave","West Rd","Country Club Dr","Ridge Rd","Valley View","Brookside Ln","Garden St","Franklin St","Adams St","Jackson St","Liberty St","Union St","Market St","Broadway","Front St","Court St","Cherry St","Walnut St","Birch Dr","Spruce St","Willow Ln","Magnolia Ave","Sycamore Dr","Dogwood Dr","Hickory Ln","Aspen Dr"];
+
+var US_FIRST_NAMES = ["James","Mary","Robert","Patricia","John","Jennifer","Michael","Linda","David","Elizabeth","William","Barbara","Richard","Susan","Joseph","Jessica","Thomas","Sarah","Charles","Karen","Christopher","Nancy","Daniel","Lisa","Matthew","Margaret","Anthony","Betty","Mark","Sandra","Donald","Ashley","Steven","Kimberly","Paul","Emily","Andrew","Donna","Joshua","Michelle","Kenneth","Carol","Kevin","Amanda","Brian","Dorothy","George","Melissa","Edward","Deborah"];
+var US_LAST_NAMES = ["Smith","Johnson","Williams","Brown","Jones","Garcia","Miller","Davis","Rodriguez","Martinez","Hernandez","Lopez","Gonzalez","Wilson","Anderson","Thomas","Taylor","Moore","Jackson","Martin","Lee","Perez","Thompson","White","Harris","Sanchez","Clark","Ramirez","Lewis","Robinson","Walker","Young","Allen","King","Wright","Scott","Torres","Nguyen","Hill","Flores","Green","Adams","Nelson","Baker","Hall","Rivera","Campbell","Mitchell","Carter","Roberts"];
+
+var UK_CITIES = [
+  {city:"London",postcode:"SW1A"},{city:"Manchester",postcode:"M1"},{city:"Birmingham",postcode:"B1"},
+  {city:"Leeds",postcode:"LS1"},{city:"Glasgow",postcode:"G1"},{city:"Liverpool",postcode:"L1"},
+  {city:"Bristol",postcode:"BS1"},{city:"Sheffield",postcode:"S1"},{city:"Edinburgh",postcode:"EH1"},
+  {city:"Cardiff",postcode:"CF10"},{city:"Belfast",postcode:"BT1"},{city:"Newcastle",postcode:"NE1"},
+  {city:"Brighton",postcode:"BN1"},{city:"Nottingham",postcode:"NG1"},{city:"Oxford",postcode:"OX1"}
+];
+var UK_STREETS = ["High Street","Station Road","Main Street","Church Lane","Park Road","Victoria Street","Mill Lane","King Street","Queens Road","Manor Road","New Road","School Lane","The Avenue","York Road","London Road","Church Street","Mill Road","North Street","South Street","Green Lane"];
+
+var CA_CITIES = [
+  {city:"Toronto",province:"ON",postal:"M5"},{city:"Vancouver",province:"BC",postal:"V6"},
+  {city:"Montreal",province:"QC",postal:"H2"},{city:"Calgary",province:"AB",postal:"T2"},
+  {city:"Ottawa",province:"ON",postal:"K1"},{city:"Edmonton",province:"AB",postal:"T5"},
+  {city:"Winnipeg",province:"MB",postal:"R3"},{city:"Mississauga",province:"ON",postal:"L5"},
+  {city:"Halifax",province:"NS",postal:"B3"},{city:"Victoria",province:"BC",postal:"V8"}
+];
+var CA_STREETS = ["King Street","Queen Street","Main Street","Yonge Street","Bay Street","Bloor Street","Dundas Street","College Street","Spadina Avenue","Bank Street","Wellington Street","Albert Street","York Street","Front Street","Richmond Street"];
+
+var JP_CITIES = [
+  {city:"Chiyoda", prefecture:"Tokyo", postal:"100"},{city:"Chuo", prefecture:"Tokyo", postal:"104"},
+  {city:"Minato", prefecture:"Tokyo", postal:"105"},{city:"Shinjuku", prefecture:"Tokyo", postal:"160"},
+  {city:"Osaka", prefecture:"Osaka", postal:"530"},{city:"Naka", prefecture:"Yokohama", postal:"231"},
+  {city:"Nakamura", prefecture:"Nagoya", postal:"450"},{city:"Sapporo", prefecture:"Hokkaido", postal:"060"}
+];
+
+var HK_DISTRICTS = [
+  {district:"Central", region:"Central and Western"},{district:"Admiralty", region:"Central and Western"},
+  {district:"Wan Chai", region:"Wan Chai"},{district:"Causeway Bay", region:"Wan Chai"},
+  {district:"Tsim Sha Tsui", region:"Yau Tsim Mong"},{district:"Mong Kok", region:"Yau Tsim Mong"},
+  {district:"North Point", region:"Eastern"},{district:"Quarry Bay", region:"Eastern"},
+  {district:"Kowloon Bay", region:"Kwun Tong"},{district:"Sha Tin", region:"Sha Tin"}
+];
+
+var SG_AREAS = ["Orchard","Marina Bay","Sentosa","Chinatown","Little India","Bugis","Holland Village","Tiong Bahru","Bukit Timah","Novena","Bedok","Tampines","Jurong East","Clementi","Bishan"];
+
+var AU_CITIES = [
+  {city:"Sydney",state:"NSW",postcode:"2000"},{city:"Melbourne",state:"VIC",postcode:"3000"},
+  {city:"Brisbane",state:"QLD",postcode:"4000"},{city:"Perth",state:"WA",postcode:"6000"},
+  {city:"Adelaide",state:"SA",postcode:"5000"},{city:"Gold Coast",state:"QLD",postcode:"4217"},
+  {city:"Canberra",state:"ACT",postcode:"2600"},{city:"Hobart",state:"TAS",postcode:"7000"}
+];
+
+function randomFrom(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+function padNum(n, len) { return String(n).padStart(len, "0"); }
+function randInt(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
+
+function generateUSAddress(ipRegion) {
+  var stateKey = null;
+  if (ipRegion) {
+    var upper = ipRegion.toUpperCase();
+    for (var k in US_STATES) { if (US_STATES[k] && k === upper) { stateKey = k; break; } }
+    if (!stateKey) {
+      for (var k2 in US_STATES) {
+        if (US_STATES[k2] && US_STATES[k2].name.toUpperCase().indexOf(upper) >= 0) { stateKey = k2; break; }
+      }
+    }
+  }
+  if (!stateKey) {
+    var validKeys = [];
+    for (var k3 in US_STATES) { if (US_STATES[k3]) validKeys.push(k3); }
+    stateKey = randomFrom(validKeys);
+  }
+  var st = US_STATES[stateKey];
+  var city = randomFrom(st.cities);
+  var zipPrefix = randomFrom(st.zips);
+  var zip = zipPrefix + padNum(randInt(0, 99), 2);
+  var streetNum = randInt(100, 9999);
+  var street = randomFrom(US_STREETS);
+  var apt = Math.random() > 0.6 ? " Apt " + randInt(1, 99) : "";
+  var firstName = randomFrom(US_FIRST_NAMES);
+  var lastName = randomFrom(US_LAST_NAMES);
+  return { name: firstName + " " + lastName, line1: streetNum + " " + street + apt, city: city, state: stateKey, postal: zip, country: "US", countryName: "United States" };
+}
+
+function generateUKAddress() {
+  var c = randomFrom(UK_CITIES);
+  var streetNum = randInt(1, 200);
+  var street = randomFrom(UK_STREETS);
+  var flat = Math.random() > 0.5 ? "Flat " + randInt(1, 30) + ", " : "";
+  var firstName = randomFrom(US_FIRST_NAMES);
+  var lastName = randomFrom(US_LAST_NAMES);
+  var postSuffix = String.fromCharCode(65 + randInt(0,25)) + randInt(1,9) + String.fromCharCode(65 + randInt(0,25));
+  var postcode = c.postcode + " " + randInt(1,9) + postSuffix;
+  return { name: firstName + " " + lastName, line1: flat + streetNum + " " + street, city: c.city, state: "England", postal: postcode, country: "GB", countryName: "United Kingdom" };
+}
+
+function generateCAAddress() {
+  var c = randomFrom(CA_CITIES);
+  var streetNum = randInt(100, 9999);
+  var street = randomFrom(CA_STREETS);
+  var apt = Math.random() > 0.5 ? " Unit " + randInt(1, 99) : "";
+  var firstName = randomFrom(US_FIRST_NAMES);
+  var lastName = randomFrom(US_LAST_NAMES);
+  var alpha = "ABCDEFGHJKLMNPRSTVWXYZ";
+  var p1 = c.postal + alpha[randInt(0, alpha.length-1)] + randInt(1,9) + alpha[randInt(0, alpha.length-1)];
+  var postal = p1 + " " + alpha[randInt(0, alpha.length-1)] + randInt(1,9) + alpha[randInt(0, alpha.length-1)];
+  return { name: firstName + " " + lastName, line1: streetNum + " " + street + apt, city: c.city, state: c.province, postal: postal, country: "CA", countryName: "Canada" };
+}
+
+function generateJPAddress() {
+  var c = randomFrom(JP_CITIES);
+  var chome = randInt(1, 5);
+  var ban = randInt(1, 30);
+  var go = randInt(1, 20);
+  var postal = c.postal + padNum(randInt(0,9999), 4);
+  var streets = ["Sakura-dori","Chuo-dori","Midori-dori","Hana-dori","Yama-dori","Kawa-dori"];
+  return { name: "Tarou Yamada", line1: c.city + "-" + chome + "-" + ban + "-" + go, city: c.city + "-ku", state: c.prefecture, postal: postal, country: "JP", countryName: "Japan" };
+}
+
+function generateHKAddress() {
+  var d = randomFrom(HK_DISTRICTS);
+  var bldg = randInt(1, 80);
+  var floor = randInt(1, 50);
+  var flat = String.fromCharCode(65 + randInt(0,5)) + randInt(1, 99);
+  var streets = ["Des Voeux Road","Hennessy Road","Nathan Road","Argyle Street","Canton Road","Princess Margaret Road"];
+  var firstName = randomFrom(["Chan","Wong","Lee","Lau","Cheung","Ho","Choi","Tang","Wu","Lam"]);
+  var lastName = randomFrom(["Ka Ming","Siu Fung","Wing Yan","Ho Yin","Tsz Hin","Ka Wai","Sze Wing","Chun Yu"]);
+  return { name: firstName + " " + lastName, line1: "Flat " + flat + ", " + randInt(1,200) + " " + randomFrom(streets) + ", " + d.district, city: d.region, state: "Hong Kong Island", postal: "", country: "HK", countryName: "Hong Kong" };
+}
+
+function generateSGAddress() {
+  var area = randomFrom(SG_AREAS);
+  var blk = randInt(1, 999);
+  var floor = randInt(1, 40);
+  var unit = randInt(1, 200);
+  var postal = padNum(randInt(1, 80), 6);
+  var firstName = randomFrom(["Tan","Lim","Lee","Ong","Wong","Goh","Chua","Chan","Koh","Teo"]);
+  var lastName = randomFrom(["Wei Ming","Hui Min","Jun Jie","Pei Shan","Kah Lok","Siew Ling","Chee Boon","Yan Ni"]);
+  return { name: firstName + " " + lastName, line1: "Blk " + blk + " " + area + " Road #" + padNum(floor,2) + "-" + padNum(unit,2), city: area, state: "", postal: postal, country: "SG", countryName: "Singapore" };
+}
+
+function generateAUAddress() {
+  var c = randomFrom(AU_CITIES);
+  var streetNum = randInt(1, 500);
+  var streets = ["George Street","Pitt Street","Collins Street","Bourke Street","Queen Street","Adelaide Street","Hay Street","Murray Street","Grenfell Street"];
+  var apt = Math.random() > 0.5 ? " Unit " + randInt(1, 50) : "";
+  var firstName = randomFrom(US_FIRST_NAMES);
+  var lastName = randomFrom(US_LAST_NAMES);
+  return { name: firstName + " " + lastName, line1: streetNum + " " + randomFrom(streets) + apt, city: c.city, state: c.state, postal: c.postcode, country: "AU", countryName: "Australia" };
+}
+
+function generateAddress(countryCode, ipRegion) {
+  switch((countryCode || "US").toUpperCase()) {
+    case "US": return generateUSAddress(ipRegion);
+    case "GB": return generateUKAddress();
+    case "CA": return generateCAAddress();
+    case "JP": return generateJPAddress();
+    case "HK": return generateHKAddress();
+    case "SG": return generateSGAddress();
+    case "AU": return generateAUAddress();
+    case "DE": return generateGenericEU("DE","Germany","Germany");
+    case "FR": return generateGenericEU("FR","France","France");
+    case "NL": return generateGenericEU("NL","Netherlands","Netherlands");
+    default: return generateUSAddress(ipRegion);
+  }
+}
+
+function generateGenericEU(cc, countryName, stateName) {
+  var streets = ["Hauptstrasse","Bahnhofstrasse","Schulstrasse","Gartenstrasse","Bergstrasse","Dorfstrasse","Lindenstrasse"];
+  var streetsFR = ["Rue du Mai","Avenue de la Republique","Rue Pasteur","Boulevard Saint-Michel","Rue Victor Hugo"];
+  var streetsNL = ["Keizerstraat","Kerkstraat","Stationsweg","Markt","Lindenlaan","Koningstraat"];
+  var streetPool = cc === "DE" ? streets : (cc === "FR" ? streetsFR : streetsNL);
+  var streetNum = randInt(1, 200);
+  var cities = cc === "DE" ? ["Berlin","Munich","Hamburg","Frankfurt","Cologne","Stuttgart"] : (cc === "FR" ? ["Paris","Lyon","Marseille","Toulouse","Nice","Lille"] : ["Amsterdam","Rotterdam","The Hague","Utrecht","Eindhoven"]);
+  var firstName = randomFrom(US_FIRST_NAMES);
+  var lastName = randomFrom(US_LAST_NAMES);
+  var postal = padNum(randInt(10000,99999), 5);
+  return { name: firstName + " " + lastName, line1: streetNum + " " + randomFrom(streetPool), city: randomFrom(cities), state: stateName, postal: postal, country: cc, countryName: countryName };
+}
+
+var CURRENT_ADDR = null;
+
+function renderAddress(addr, matchNote) {
+  CURRENT_ADDR = addr;
+  var container = document.getElementById("addrResult");
+  var fields = [
+    {label:"Name", value: addr.name},
+    {label:"Address", value: addr.line1},
+    {label:"City", value: addr.city},
+    {label:"State/Prov", value: addr.state || "-"},
+    {label:"ZIP/Postal", value: addr.postal || "-"},
+    {label:"Country", value: addr.countryName + " (" + addr.country + ")"}
+  ];
+  var html = "";
+  for (var i = 0; i < fields.length; i++) {
+    html += '<div class="addr-field"><div class="addr-label">' + fields[i].label + '</div><div class="addr-value">' + esc(fields[i].value) + '</div><button class="addr-copy" data-val="' + esc(fields[i].value) + '">Copy</button></div>';
+  }
+  if (matchNote) html += '<div style="margin-top:10px;font-size:13px;">' + matchNote + '</div>';
+  container.innerHTML = html;
+  var copyBtns = container.querySelectorAll(".addr-copy");
+  for (var j = 0; j < copyBtns.length; j++) {
+    copyBtns[j].addEventListener("click", function() {
+      var val = this.getAttribute("data-val");
+      copyToClipboard(val, this);
+    });
+  }
+}
+
+function copyToClipboard(text, btn) {
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(text).then(function() {
+      btn.classList.add("copied");
+      btn.textContent = "✓";
+      setTimeout(function() { btn.classList.remove("copied"); btn.textContent = "Copy"; }, 1500);
+    });
+  } else {
+    var ta = document.createElement("textarea");
+    ta.value = text; document.body.appendChild(ta); ta.select();
+    try { document.execCommand("copy"); } catch(e){}
+    document.body.removeChild(ta);
+    btn.classList.add("copied");
+    btn.textContent = "✓";
+    setTimeout(function() { btn.classList.remove("copied"); btn.textContent = "Copy"; }, 1500);
+  }
+}
+
+function handleAddrGen() {
+  var sel = document.getElementById("addrCountry");
+  var cc = sel.value;
+  var ipRegion = (RESULTS.ip && RESULTS.ip.region) ? RESULTS.ip.region : null;
+  if (!cc && RESULTS.ip && RESULTS.ip.countryCode) cc = RESULTS.ip.countryCode;
+  if (!cc) cc = "US";
+  sel.value = cc;
+
+  var addr = generateAddress(cc, ipRegion);
+  var matchNote = "";
+  var badge = document.getElementById("addrMatchBadge");
+  if (RESULTS.ip && RESULTS.ip.countryCode) {
+    if (addr.country === RESULTS.ip.countryCode) {
+      matchNote = '<span style="color:var(--green);">✓ 地址地区与出口 IP (' + esc(RESULTS.ip.country) + ') 一致</span>';
+      badge.innerHTML = '<span style="color:var(--green);background:rgba(63,185,80,.15);padding:2px 8px;border-radius:4px;">✓ IP 匹配</span>';
+    } else {
+      matchNote = '<span style="color:var(--red);">✗ 地址地区 (' + addr.country + ') 与出口 IP (' + esc(RESULTS.ip.countryCode) + ') 不一致 — 请修正</span>';
+      badge.innerHTML = '<span style="color:var(--red);background:rgba(248,81,73,.15);padding:2px 8px;border-radius:4px;">✗ 不匹配</span>';
+    }
+  }
+  renderAddress(addr, matchNote);
+}
+
+function copyAllAddress() {
+  if (!CURRENT_ADDR) return;
+  var text = CURRENT_ADDR.name + "\n" + CURRENT_ADDR.line1 + "\n" + CURRENT_ADDR.city + (CURRENT_ADDR.state ? ", " + CURRENT_ADDR.state : "") + " " + (CURRENT_ADDR.postal || "") + "\n" + CURRENT_ADDR.countryName;
+  var btn = document.getElementById("addrCopyAllBtn");
+  copyToClipboard(text, btn);
+}
+
+// --- Event Bindings ---
+document.getElementById("scanBtn").addEventListener("click", runFullDiagnosis);
+document.getElementById("binBtn").addEventListener("click", analyzeBIN);
+document.getElementById("logSuccess").addEventListener("click", function() { logAttempt(true); });
+document.getElementById("logFail").addEventListener("click", function() { logAttempt(false); });
+document.getElementById("clearLog").addEventListener("click", clearRetries);
+document.getElementById("binInput").addEventListener("input", function() { this.value = this.value.replace(/[^0-9]/g, ""); });
+document.getElementById("addrGenBtn").addEventListener("click", handleAddrGen);
+document.getElementById("addrCopyAllBtn").addEventListener("click", copyAllAddress);
+document.getElementById("addrCountry").addEventListener("change", handleAddrGen);
+
+// Init: render retry tracker if history exists
+if (RESULTS.attempts.length > 0) {
+  document.getElementById("resultsSection").classList.remove("hidden");
+  renderRetryTracker();
+}
+</script>
+</body>
+</html>

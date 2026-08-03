@@ -20,7 +20,36 @@ def _default_database_url() -> str:
 
 
 DATABASE_URL = os.getenv("ACCOUNT_MANAGER_DATABASE_URL", _default_database_url())
-engine = create_engine(DATABASE_URL)
+
+
+def _build_engine():
+    """构建 SQLModel engine，对 SQLite 启用跨线程访问与 WAL 模式。
+
+    - ``check_same_thread=False``：允许 scheduler/lifecycle/请求线程共用 engine
+    - ``timeout=30``：写入锁等待上限，缓解 ``database is locked``
+    - ``journal_mode=WAL``：读写并发不再互斥整库
+    - ``busy_timeout=5000``：SQLite 内部锁等待
+    """
+    connect_args: dict = {}
+    _engine = create_engine(DATABASE_URL, connect_args=connect_args)
+    if DATABASE_URL.startswith("sqlite"):
+        connect_args.update({"check_same_thread": False, "timeout": 30})
+        _engine = create_engine(DATABASE_URL, connect_args=connect_args)
+
+        from sqlalchemy import event
+
+        @event.listens_for(_engine, "connect")
+        def _set_sqlite_pragma(dbapi_conn, _):  # noqa: ANN001
+            cur = dbapi_conn.cursor()
+            try:
+                cur.execute("PRAGMA journal_mode=WAL")
+                cur.execute("PRAGMA busy_timeout=5000")
+            finally:
+                cur.close()
+    return _engine
+
+
+engine = _build_engine()
 
 
 class AccountModel(SQLModel, table=True):

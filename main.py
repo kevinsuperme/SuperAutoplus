@@ -134,9 +134,9 @@ app.include_router(proxies_router, prefix="/api")
 app.include_router(sms_router, prefix="/api")
 app.include_router(sms_pool_router, prefix="/api")
 app.include_router(stats_router, prefix="/api")
+app.include_router(task_logs_router, prefix="/api")
 app.include_router(tasks_router, prefix="/api")
 app.include_router(task_commands_router, prefix="/api")
-app.include_router(task_logs_router, prefix="/api")
 app.include_router(system_router, prefix="/api")
 
 
