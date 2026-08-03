@@ -105,7 +105,8 @@ def _task_lock(task_id: str) -> threading.Lock:
 
 
 def _mutate_task(task_id: str, fn: Callable[[TaskModel], None]) -> Optional[TaskModel]:
-    with _task_lock(task_id):
+    lock = _task_lock(task_id)
+    with lock:
         with Session(engine) as session:
             task = session.get(TaskModel, task_id)
             if not task:
@@ -115,7 +116,15 @@ def _mutate_task(task_id: str, fn: Callable[[TaskModel], None]) -> Optional[Task
             session.add(task)
             session.commit()
             session.refresh(task)
+            reached_terminal = task.status in TERMINAL_TASK_STATUSES
             return task
+    # 任务进入终态后从全局字典移除锁引用，避免 _task_locks 无限增长。
+    # 此时 lock 已释放；仍在等待该 lock 的线程持有旧引用会继续执行，
+    # 但终态任务不应再有后续写入。
+    if reached_terminal:
+        with _task_locks_guard:
+            if _task_locks.get(task_id) is lock:
+                _task_locks.pop(task_id, None)
 
 
 def _save_task_log(platform: str, email: str, status: str, error: str = "", detail: dict | None = None) -> None:
@@ -524,6 +533,9 @@ class TaskLogger:
 
     def mark_running(self) -> None:
         def _update(task: TaskModel) -> None:
+            # 不覆盖用户已发起的取消请求，避免 cancel 信号丢失
+            if task.status == TASK_STATUS_CANCEL_REQUESTED:
+                return
             task.status = TASK_STATUS_RUNNING
             task.started_at = task.started_at or _utcnow()
 

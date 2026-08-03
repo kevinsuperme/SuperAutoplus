@@ -1509,26 +1509,32 @@ def execute_gopay_pay_chatgpt(
 
     # 把 ChatGPT 账号标 SUBSCRIBED 并存 cashier_url / midtrans_url
     # （chatgpt_account_id=0 占位场景跳过——没有关联的 ChatGPT 账号）
+    # 注意：付款已成功，此处 DB 标记失败不应让任务判失败，否则会触发重复付款。
     if int(chatgpt_account_id) > 0:
         from core.account_graph import patch_account_graph
 
-        with Session(engine) as session:
-            m = session.get(AccountModel, int(chatgpt_account_id))
-            if m:
-                patch_account_graph(
-                    session,
-                    m,
-                    lifecycle_status="subscribed",
-                    cashier_url=out["cashier_url"] or None,
-                    summary_updates={
-                        "midtrans_url": out["midtrans_url"],
-                        "paid_via": "gopay",
-                        "paid_via_gopay_account_id": out["gopay_account_id"],
-                        "plan_state": "subscribed",
-                        "plan_name": "Plus",
-                    },
-                )
-                session.commit()
-        log("ChatGPT 账号已标记 subscribed")
+        try:
+            with Session(engine) as session:
+                m = session.get(AccountModel, int(chatgpt_account_id))
+                if m:
+                    patch_account_graph(
+                        session,
+                        m,
+                        lifecycle_status="subscribed",
+                        cashier_url=out["cashier_url"] or None,
+                        summary_updates={
+                            "midtrans_url": out["midtrans_url"],
+                            "paid_via": "gopay",
+                            "paid_via_gopay_account_id": out["gopay_account_id"],
+                            "plan_state": "subscribed",
+                            "plan_name": "Plus",
+                        },
+                    )
+                    session.commit()
+            log("ChatGPT 账号已标记 subscribed")
+        except Exception as exc:
+            # 付款已成功，仅记录警告，不影响任务成功结果
+            log(f"ChatGPT 账号标记 subscribed 失败（付款已成功，需人工核对）: {exc}")
+            out.setdefault("warnings", []).append(f"mark_subscribed_failed: {exc}")
 
     return out

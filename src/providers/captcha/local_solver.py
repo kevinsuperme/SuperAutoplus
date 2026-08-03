@@ -1,4 +1,5 @@
 """Local Turnstile solver (Camoufox / patchright)."""
+import os
 from core.base_captcha import BaseCaptcha
 from providers.registry import register_provider
 
@@ -9,10 +10,15 @@ class LocalSolverCaptcha(BaseCaptcha):
 
     def __init__(self, solver_url: str = ""):
         self.solver_url = solver_url.rstrip("/")
+        # 与 api_solver 端的 OPAI_SOLVER_API_KEY 对齐：未配置则不发送（保持向后兼容）
+        self._api_key = os.getenv("OPAI_SOLVER_API_KEY", "")
 
     @classmethod
     def from_config(cls, config: dict) -> 'LocalSolverCaptcha':
         return cls(str(config.get("solver_url", "") or ""))
+
+    def _headers(self) -> dict:
+        return {"X-API-Key": self._api_key} if self._api_key else {}
 
     def solve_turnstile(self, page_url: str, site_key: str) -> str:
         import requests, time
@@ -20,6 +26,7 @@ class LocalSolverCaptcha(BaseCaptcha):
         r = requests.get(
             f"{self.solver_url}/turnstile",
             params={"url": page_url, "sitekey": site_key},
+            headers=self._headers(),
             timeout=15,
         )
         r.raise_for_status()
@@ -32,6 +39,7 @@ class LocalSolverCaptcha(BaseCaptcha):
             res = requests.get(
                 f"{self.solver_url}/result",
                 params={"id": task_id},
+                headers=self._headers(),
                 timeout=10,
             )
             if res.status_code == 200:

@@ -415,7 +415,7 @@ def _register_one(api_key: str, pin: str, proxy: str, envelope_did: str,
             # 已注册号**上（smsapi 固定号能收、herosms 一次性号也在手里能收），
             # 所以 2fa 用注册渠道的 api_key/aid 接。
             if auto_rebind and callable(rebind_acquire):
-                log.info("[%s] auto_rebind 开启：用 PIN=%s 登录已注册号，准备换绑到新号…", phone, pin)
+                log.info("[%s] auto_rebind 开启：用 PIN=%s 登录已注册号，准备换绑到新号…", phone, "***")
                 acquired = _login_rebind_to_new_phone(
                     phone, pin, proxy,
                     rebind_acquire=rebind_acquire,
@@ -597,7 +597,7 @@ def _register_one(api_key: str, pin: str, proxy: str, envelope_did: str,
         if not pin_code:
             log.error("[%s] PIN OTP not received", phone)
             return None
-        log.info("[%s] PIN OTP: %s", phone, pin_code)
+        log.info("[%s] PIN OTP: %s", phone, "***")
 
         time.sleep(2)
         sc, data, _ = gp.cvs_verify_pin(str(access_token), str(pin_vid), str(pin_code), str(pin_otp_token), method=pin_method)
@@ -872,7 +872,7 @@ def _login_rebind_to_new_phone(phone: str, pin: str, proxy: str, *, rebind_acqui
     logged = _login_one(phone, pin, proxy, use_pin=True,
                         api_key=login_api_key, sms_id=login_sms_id)
     if not logged or not logged.get("client"):
-        log.warning("[%s] 已注册号 PIN 登录失败（PIN=%s 可能不对，或 2fa 没接到）", phone, pin)
+        log.warning("[%s] 已注册号 PIN 登录失败（PIN=%s 可能不对，或 2fa 没接到）", phone, "***")
         return None
     client = logged["client"]
 
