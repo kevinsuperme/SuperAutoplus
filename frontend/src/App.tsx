@@ -27,6 +27,7 @@ import IdpTeamAutomation from "@/pages/IdpTeamAutomation";
 import ConverterClient from "@/pages/ConverterClient";
 import PxlPlusClient from "@/pages/PxlPlusClient";
 import LuckMailCodeClient from "@/pages/LuckMailCodeClient";
+import SrriInspector from "@/pages/SrriInspector";
 import UpdateBanner from "@/components/UpdateBanner";
 import {
   ChevronRight,
@@ -64,6 +65,7 @@ const NAV_ITEMS: NavItem[] = [
     labelKey: "nav.idpTeamAutomation",
     icon: ShieldCheck,
   },
+  { path: "/srri-inspector", labelKey: "nav.srriInspector", icon: ShieldCheck },
   { path: "/history", labelKey: "nav.tasks", icon: History },
 ];
 
@@ -380,6 +382,7 @@ function Shell({
             <Route path="/pix-gpt-plus" element={<PixGptPlus />} />
             <Route path="/plus-manager" element={<PlusManager />} />
             <Route path="/idp-team-automation" element={<IdpTeamAutomation />} />
+            <Route path="/srri-inspector" element={<SrriInspector />} />
             <Route path="/history" element={<TaskHistory />} />
             <Route path="/proxies" element={<Proxies />} />
             <Route
