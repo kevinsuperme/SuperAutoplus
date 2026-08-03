@@ -52,13 +52,13 @@
 
 本项目在 [`any-auto-register`](https://github.com/lxf746/any-auto-register) 基础上重点扩展：
 
-| 新增能力                       | 说明                                                                          |
-| ------------------------------ | ----------------------------------------------------------------------------- |
-| � **PayPal日区/美区 付款 ChatGPT Plus** | PayPal浏览器多线程付款，自动完成 ChatGPT Plus 订阅全链路 |
-| � **GoPay 付款 ChatGPT Plus** | 印尼 GoPay 协议化付款，自动完成 ChatGPT Plus 订阅的「生成支付链接 → Midtrans 收银台 → GoPay 14 步 API 付款」全链路 |
-| � **GoPay 账号自动注册**      | 印尼手机号 + PIN 协议注册 GoPay 账号，支持接码渠道轮换                         |
-| 🧾 **接码渠道扩展**            | 在原有 SMS-Activate / HeroSMS 之外，新增 SMSPool、SMSBower 渠道                |
-| 🌐 **C 端 / 管理端独立 API**   | `src/customer_portal_api/` 提供可独立部署的多租户门户后端                          |
+| 新增能力                              | 说明                                                                                 |
+| --------------------------------- | ---------------------------------------------------------------------------------- |
+| � **PayPal日区/美区 付款 ChatGPT Plus** | PayPal浏览器多线程付款，自动完成 ChatGPT Plus 订阅全链路                                             |
+| � **GoPay 付款 ChatGPT Plus**       | 印尼 GoPay 协议化付款，自动完成 ChatGPT Plus 订阅的「生成支付链接 → Midtrans 收银台 → GoPay 14 步 API 付款」全链路 |
+| � **GoPay 账号自动注册**                | 印尼手机号 + PIN 协议注册 GoPay 账号，支持接码渠道轮换                                                 |
+| 🧾 **接码渠道扩展**                     | 在原有 SMS-Activate / HeroSMS 之外，新增 SMSPool、SMSBower 渠道                               |
+| 🌐 **C 端 / 管理端独立 API**            | `src/customer_portal_api/` 提供可独立部署的多租户门户后端                                         |
 
 > 其余平台注册、邮箱 / 验证码 / 代理 provider、生命周期管理、成功率仪表盘等能力沿用并兼容上游框架。
 
@@ -80,26 +80,27 @@
 
 ## 支持的平台
 
-| 平台          | 协议模式 | 浏览器模式 | OAuth | 备注                         |
-| ------------- | :------: | :--------: | :---: | ---------------------------- |
-| ChatGPT       |    ✅    |    ✅     |  ✅   | Plus 支付链接 / PayPal 结账  |
-| Cursor        |    -    |     ✅     |  -   | 需手机验证                   |
-| Kiro          |    -    |     ✅     |  -   | 支持账号切换                 |
-| Trae.ai       |    -    |     ✅     |  -   | Pro 升级链接生成             |
-| Grok          |    -    |     ✅     |  -   |                              |
-| Windsurf      |    -    |     ✅     |  -   | Trial 链接生成               |
-| Tavily        |    -    |     ✅     |  -   |                              |
-| Blink         |    -    |     ✅     |  -   |                              |
-| Cerebras      |    -    |     ✅     |  -   |                              |
-| OpenBlockLabs |    -    |     ✅     |  -   |                              |
-| GoPay         |    ✅    |     —      |  —    | 印尼 GoPay，手机 + PIN，付款 Plus |
-| Anything      |    -    |     ✅     |  —    | 通用适配器，配置即接入新平台 |
+| 平台            | 协议模式 | 浏览器模式 | OAuth | 备注                        |
+| ------------- |:----:|:-----:|:-----:| ------------------------- |
+| ChatGPT       | ✅    | ✅     | ✅     | Plus 支付链接 / PayPal 结账     |
+| Cursor        | -    | ✅     | -     | 需手机验证                     |
+| Kiro          | -    | ✅     | -     | 支持账号切换                    |
+| Trae.ai       | -    | ✅     | -     | Pro 升级链接生成                |
+| Grok          | -    | ✅     | -     |                           |
+| Windsurf      | -    | ✅     | -     | Trial 链接生成                |
+| Tavily        | -    | ✅     | -     |                           |
+| Blink         | -    | ✅     | -     |                           |
+| Cerebras      | -    | ✅     | -     |                           |
+| OpenBlockLabs | -    | ✅     | -     |                           |
+| GoPay         | ✅    | —     | —     | 印尼 GoPay，手机 + PIN，付款 Plus |
+| Anything      | -    | ✅     | —     | 通用适配器，配置即接入新平台            |
 
 > 各平台实际支持的执行器以插件 `supported_executors` 声明为准，可在 Web UI「平台能力」页查看与覆盖。
 
 ## 界面预览
 
 > 📸 _截图将随版本迭代持续更新。_
+
 ### 交流联系方式
 
 ![联系方式](assets/screenshots/qrcode_1780724489871.jpg)
@@ -123,13 +124,13 @@
 
 ## 技术栈
 
-| 层级         | 技术                                    |
-| ------------ | --------------------------------------- |
-| 后端         | FastAPI + SQLite（SQLModel）            |
-| 前端         | React + TypeScript + Vite + TailwindCSS |
-| HTTP         | curl_cffi / tls_client（浏览器指纹伪装） |
+| 层级     | 技术                                      |
+| ------ | --------------------------------------- |
+| 后端     | FastAPI + SQLite（SQLModel）              |
+| 前端     | React + TypeScript + Vite + TailwindCSS |
+| HTTP   | curl_cffi / tls_client（浏览器指纹伪装）         |
 | 浏览器自动化 | Playwright / Camoufox / BitBrowser      |
-| 桌面端       | Electron（内置后端 + 前端）             |
+| 桌面端    | Electron（内置后端 + 前端）                     |
 
 ## 快速开始
 
@@ -274,11 +275,11 @@ services:
 
 ### 访问地址
 
-| 服务   | 地址                             | 说明                        |
-| ------ | -------------------------------- | --------------------------- |
-| Web UI | `http://localhost:8000`          | 主界面                      |
+| 服务     | 地址                               | 说明                |
+| ------ | -------------------------------- | ----------------- |
+| Web UI | `http://localhost:8000`          | 主界面               |
 | noVNC  | `http://localhost:6080/vnc.html` | 可视化浏览器（headed 模式） |
-| Solver | `http://localhost:8889`          | Turnstile 验证码求解器      |
+| Solver | `http://localhost:8889`          | Turnstile 验证码求解器  |
 
 > 云服务器部署时，请确保安全组/防火墙放行 8000、6080、8889 端口；公网部署务必设置 `APP_PASSWORD` 访问密码。
 
@@ -312,17 +313,17 @@ docker compose down         # 停止
 
 主要参数：
 
-| 参数                   | 说明                                                              |
-| ---------------------- | ----------------------------------------------------------------- |
+| 参数                     | 说明                                                |
+| ---------------------- | ------------------------------------------------- |
 | `chatgpt_account_ids`  | 要付款的 ChatGPT 账号 id 列表；留空且填了 `register_count` 时先注册 |
-| `register_count`       | 未选账号时，先注册 N 个 ChatGPT 账号再付款                         |
+| `register_count`       | 未选账号时，先注册 N 个 ChatGPT 账号再付款                       |
 | `gopay_account_id`     | 指定 GoPay 付款账号；留空按 `gopay_source` 策略自动选/注册         |
-| `gopay_source`         | `auto`（先用池后注册）/ `pool`（只用池）/ `register`（强制注册）  |
-| `sms_provider`         | GoPay 注册接码渠道：`herosms` / `smspool` / `smsbower`            |
-| `country` / `currency` | 默认 `ID` / `IDR`                                                 |
-| `checkout_mode`        | 浏览器后端：`camoufox` / `bitbrowser_*`                          |
-| `envelope_url`         | 可选，付款前先领红包补 GoPay 余额                                 |
-| `concurrency`          | 多账号并发数                                                      |
+| `gopay_source`         | `auto`（先用池后注册）/ `pool`（只用池）/ `register`（强制注册）     |
+| `sms_provider`         | GoPay 注册接码渠道：`herosms` / `smspool` / `smsbower`   |
+| `country` / `currency` | 默认 `ID` / `IDR`                                   |
+| `checkout_mode`        | 浏览器后端：`camoufox` / `bitbrowser_*`                 |
+| `envelope_url`         | 可选，付款前先领红包补 GoPay 余额                              |
+| `concurrency`          | 多账号并发数                                            |
 
 > GoPay 账号注册与付款依赖印尼手机号接码（HeroSMS / SMSPool / SMSBower），请先在「全局配置」配置对应渠道的 API key。GoPay PIN 默认值可通过任务参数 `gopay_pin` 覆盖。
 
@@ -338,60 +339,60 @@ docker compose down         # 停止
 
 使用固定的自有域名邮箱，稳定性最高，适合长期使用。
 
-| 参数       | 说明                                         |
-| ---------- | -------------------------------------------- |
-| 邮箱地址   | 完整邮箱地址，如 `user@example.com`          |
-| Account ID | 邮箱账号 ID（在 Laoudo 面板查看）            |
+| 参数         | 说明                            |
+| ---------- | ----------------------------- |
+| 邮箱地址       | 完整邮箱地址，如 `user@example.com`   |
+| Account ID | 邮箱账号 ID（在 Laoudo 面板查看）        |
 | JWT Token  | 登录后从浏览器 Cookie 或接口获取的认证 Token |
 
 ### Cloudflare Worker 自建邮箱
 
 基于 [cloudflare_temp_email](https://github.com/dreamhunter2333/cloudflare_temp_email) 自行部署的邮箱服务，完全自主可控。
 
-| 参数        | 说明                                                                  |
-| ----------- | --------------------------------------------------------------------- |
-| API URL     | Worker 的后端 API 地址，如 `https://api.your-domain.com`              |
-| Admin Token | 管理员密码，在 Worker 环境变量 `ADMIN_PASSWORDS` 中配置               |
-| 域名        | 收件邮箱的域名，如 `your-domain.com`（需配置 MX 记录指向 Cloudflare） |
-| Fingerprint | 可选，Worker 开启 fingerprint 验证时填写                              |
+| 参数          | 说明                                                  |
+| ----------- | --------------------------------------------------- |
+| API URL     | Worker 的后端 API 地址，如 `https://api.your-domain.com`   |
+| Admin Token | 管理员密码，在 Worker 环境变量 `ADMIN_PASSWORDS` 中配置           |
+| 域名          | 收件邮箱的域名，如 `your-domain.com`（需配置 MX 记录指向 Cloudflare） |
+| Fingerprint | 可选，Worker 开启 fingerprint 验证时填写                      |
 
 ### Freemail
 
 基于 Cloudflare Worker 自建的邮箱服务，支持管理员令牌和用户名密码两种认证方式。
 
-| 参数       | 说明                 |
-| ---------- | -------------------- |
-| API URL    | Freemail 服务地址    |
-| 管理员令牌 | 管理员认证令牌       |
-| 用户名     | 可选，用户名密码认证 |
-| 密码       | 可选，用户名密码认证 |
+| 参数      | 说明            |
+| ------- | ------------- |
+| API URL | Freemail 服务地址 |
+| 管理员令牌   | 管理员认证令牌       |
+| 用户名     | 可选，用户名密码认证    |
+| 密码      | 可选，用户名密码认证    |
 
 ### Testmail
 
 `testmail.app` 的 namespace 邮箱模式，自动生成 `{namespace}.{随机tag}@inbox.testmail.app`，适合并发任务。
 
-| 参数       | 说明                                     |
-| ---------- | ---------------------------------------- |
+| 参数         | 说明                                     |
+| ---------- | -------------------------------------- |
 | API URL    | 默认 `https://api.testmail.app/api/json` |
-| Namespace  | 你的 namespace，例如 `3xw8n`             |
-| Tag Prefix | 可选，给随机 tag 增加前缀                |
-| API Key    | testmail.app 控制台里的 API Key          |
+| Namespace  | 你的 namespace，例如 `3xw8n`                |
+| Tag Prefix | 可选，给随机 tag 增加前缀                        |
+| API Key    | testmail.app 控制台里的 API Key             |
 
 ### outlookEmail
 
 基于 [assast/outlookEmail](https://github.com/assast/outlookEmail) 的 Outlook/Hotmail 邮箱池服务，通过对外 API 读取已有邮箱账号和邮件列表。适合把自有 Outlook 邮箱池作为注册验证码收件源。
 
-| 参数             | 说明                                                                 |
-| ---------------- | -------------------------------------------------------------------- |
-| 服务地址         | outlookEmail 站点根地址，如 `https://outlook-email.example.com`，不要追加 `/api` |
-| API Key          | outlookEmail「对外 API Key」，用于调用 `/api/external/accounts` 和 `/api/external/emails` |
-| 管理员密码       | 可选；当前收码流程只需要 API Key，该字段不会写入注册账号凭证         |
-| 固定邮箱         | 可选；填写后始终使用该邮箱，留空则从账号列表选择第一个可用邮箱       |
-| 分组 / 标签参数  | 可选；对应账号列表接口的 `group_id`、`tag_ids`、`include_untagged`   |
-| 邮件查询参数     | 可选；对应邮件列表接口的 `folder`、`top`、`subject_contains`、`from_contains`、`keyword` |
-| 跳过标签名称     | 可选；逗号或换行分隔，如 `已注册`，选择邮箱时会跳过带这些标签的账号 |
-| 注册成功后打标签 | 可选；逗号或换行分隔，如 `已注册`，注册成功后给对应 outlookEmail 账号打标签 |
-| Plus 开通后打标签 | 可选；逗号或换行分隔，如 `chatgpt plus`，ChatGPT Plus 成功开通后给对应 outlookEmail 账号打标签 |
+| 参数          | 说明                                                                              |
+| ----------- | ------------------------------------------------------------------------------- |
+| 服务地址        | outlookEmail 站点根地址，如 `https://outlook-email.example.com`，不要追加 `/api`            |
+| API Key     | outlookEmail「对外 API Key」，用于调用 `/api/external/accounts` 和 `/api/external/emails` |
+| 管理员密码       | 可选；当前收码流程只需要 API Key，该字段不会写入注册账号凭证                                              |
+| 固定邮箱        | 可选；填写后始终使用该邮箱，留空则从账号列表选择第一个可用邮箱                                                 |
+| 分组 / 标签参数   | 可选；对应账号列表接口的 `group_id`、`tag_ids`、`include_untagged`                            |
+| 邮件查询参数      | 可选；对应邮件列表接口的 `folder`、`top`、`subject_contains`、`from_contains`、`keyword`        |
+| 跳过标签名称      | 可选；逗号或换行分隔，如 `已注册`，选择邮箱时会跳过带这些标签的账号                                             |
+| 注册成功后打标签    | 可选；逗号或换行分隔，如 `已注册`，注册成功后给对应 outlookEmail 账号打标签                                  |
+| Plus 开通后打标签 | 可选；逗号或换行分隔，如 `chatgpt plus`，ChatGPT Plus 成功开通后给对应 outlookEmail 账号打标签            |
 
 工作流程：
 
@@ -411,11 +412,11 @@ docker compose down         # 停止
 
 ## 验证码服务配置
 
-| 服务        | 说明                                                                    |
-| ----------- | ----------------------------------------------------------------------- |
-| YesCaptcha  | 需填写 Client Key，在 [yescaptcha.com](https://yescaptcha.com) 注册获取 |
-| 2Captcha    | 需填写 API Key，在 [2captcha.com](https://2captcha.com) 注册获取        |
-| 本地 Solver | 使用 Camoufox 本地解码，需先执行 `python3 -m camoufox fetch`            |
+| 服务         | 说明                                                             |
+| ---------- | -------------------------------------------------------------- |
+| YesCaptcha | 需填写 Client Key，在 [yescaptcha.com](https://yescaptcha.com) 注册获取 |
+| 2Captcha   | 需填写 API Key，在 [2captcha.com](https://2captcha.com) 注册获取        |
+| 本地 Solver  | 使用 Camoufox 本地解码，需先执行 `python3 -m camoufox fetch`              |
 
 ## 代理池配置
 
@@ -427,21 +428,21 @@ docker compose down         # 停止
 
 如果数据库中已配置并启用 `proxy` provider，注册时会优先尝试动态代理，失败或未配置时自动回退到静态代理池。
 
-| Provider     | 说明                                                                              |
-| ------------ | --------------------------------------------------------------------------------- |
-| API 提取代理 | 通过 HTTP API 动态提取代理 IP，适用于大多数代理商的 API 提取接口                  |
-| 旋转网关代理 | 固定入口地址，每次请求自动分配不同出口 IP，适用于 BrightData、Oxylabs、IPRoyal 等 |
+| Provider | 说明                                                      |
+| -------- | ------------------------------------------------------- |
+| API 提取代理 | 通过 HTTP API 动态提取代理 IP，适用于大多数代理商的 API 提取接口               |
+| 旋转网关代理   | 固定入口地址，每次请求自动分配不同出口 IP，适用于 BrightData、Oxylabs、IPRoyal 等 |
 
 ## 接码服务配置
 
 部分平台注册需要手机号验证（如 Cursor、GoPay），可配置接码服务自动完成：
 
-| 服务         | 说明                                                            |
-| ------------ | --------------------------------------------------------------- |
-| SMS-Activate | 需填写 API Key，可配置默认国家                                  |
+| 服务           | 说明                                    |
+| ------------ | ------------------------------------- |
+| SMS-Activate | 需填写 API Key，可配置默认国家                   |
 | HeroSMS      | 需填写 API Key，可配置服务代码、国家 ID、最高单价、号码复用策略 |
-| SMSPool      | 需填写 API Key，可配置国家 / 服务 ID / 价格上限                 |
-| SMSBower     | 需填写 API Key，可配置服务代码、国家 ID                         |
+| SMSPool      | 需填写 API Key，可配置国家 / 服务 ID / 价格上限      |
+| SMSBower     | 需填写 API Key，可配置服务代码、国家 ID             |
 
 添加方法：在 Web UI「全局配置 → 接码服务」点击「新增接码 Provider」，选择对应服务，填写 API Key 并按需设为默认。注册任务会优先使用任务参数里的 `sms_provider`，未指定时使用默认接码 Provider。
 
@@ -476,13 +477,13 @@ docker compose down         # 停止
 
 在全局配置中设置 `any2api_url`（如 `http://localhost:8099`）和 `any2api_password` 后，每次注册成功会自动推送：
 
-| 平台     | 推送目标                  |
-| -------- | ------------------------- |
+| 平台       | 推送目标                   |
+| -------- | ---------------------- |
 | Kiro     | `kiroAccounts` 账号池     |
-| Grok     | `grokTokens` token 池     |
-| Cursor   | `cursorConfig` cookie     |
-| ChatGPT  | `chatgptConfig` token     |
-| Blink    | `blinkConfig` 凭证        |
+| Grok     | `grokTokens` token 池   |
+| Cursor   | `cursorConfig` cookie  |
+| ChatGPT  | `chatgptConfig` token  |
+| Blink    | `blinkConfig` 凭证       |
 | Windsurf | `windsurfAccounts` 账号池 |
 
 未配置 `any2api_url` 时此功能静默跳过。也可手动导出：
@@ -645,11 +646,11 @@ ChatGPT 注册 / 生成支付链接 / PayPal 自动结账全程都支持把浏�
 
 **使用**：注册任务页或「生成支付链接」表单选择执行器 `bitbrowser_headed` / `bitbrowser_hidden` / `bitbrowser_headless`，填 `bit_profile_id`。
 
-| 模式                  | 行为                                 | 反爬通过率              |
-| --------------------- | ------------------------------------ | ----------------------- |
-| `bitbrowser_headed`   | 显示真实窗口（最像人）               | 高                      |
-| `bitbrowser_hidden`   | 窗口移到屏幕外但仍真实渲染（占 GPU） | 高（推荐 PayPal）       |
-| `bitbrowser_headless` | 真 `--headless=new`（性能最好）      | 中（hCaptcha 容易识别） |
+| 模式                    | 行为                       | 反爬通过率            |
+| --------------------- | ------------------------ | ---------------- |
+| `bitbrowser_headed`   | 显示真实窗口（最像人）              | 高                |
+| `bitbrowser_hidden`   | 窗口移到屏幕外但仍真实渲染（占 GPU）     | 高（推荐 PayPal）     |
+| `bitbrowser_headless` | 真 `--headless=new`（性能最好） | 中（hCaptcha 容易识别） |
 
 环境变量：`BIT_PROFILE_ID`（默认 profile）、`BIT_API_URL`（默认 `http://127.0.0.1:54345`）、`BIT_API_TOKEN`（企业版需要，社区版留空）。
 
@@ -682,7 +683,6 @@ ChatGPT 注册 / 生成支付链接 / PayPal 自动结账全程都支持把浏�
 本项目采用 [AGPL-3.0](LICENSE) 许可证。个人学习和研究可自由使用；商业使用需遵守 AGPL-3.0 条款（衍生作品须开源）。
 
 本项目基于 [`lxf746/any-auto-register`](https://github.com/lxf746/any-auto-register)（同样为 AGPL-3.0）二次开发，衍生代码遵循相同许可证。
-
 
 ## 使用提示
 
