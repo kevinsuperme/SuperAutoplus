@@ -65,7 +65,7 @@
 ## 功能特性
 
 - **多平台支持**：ChatGPT、Cursor、Kiro、Trae.ai、Tavily、Grok、Blink、Cerebras、OpenBlockLabs、Windsurf、GoPay，支持自定义插件扩展（Anything 通用适配器）
-- **多邮箱服务**：MoeMail（自建）、Laoudo、DuckMail、Testmail、outlookEmail、Cloudflare Worker 自建邮箱、Freemail、TempMail.lol、Temp-Mail Web、DuckDuckGo Email
+- **多邮箱服务**：MoeMail（自建）、Laoudo、Aitre、DuckMail、Testmail、outlookEmail、Cloudflare Worker 自建邮箱、Freemail、TempMail.lol、Temp-Mail Web、DuckDuckGo Email
 - **多执行模式**：API 协议（无浏览器）、无头浏览器、有头浏览器（各平台按需支持）
 - **验证码服务**：YesCaptcha、2Captcha、本地 Solver（Camoufox）
 - **接码服务**：SMS-Activate、HeroSMS、SMSPool、SMSBower
@@ -109,7 +109,7 @@
 
 ![gopay注册生成gptplus](assets/screenshots/gopay注册生成gptplus.png)
 
-### PayPal注册gptplus
+### PayPal注册gptplus（第二种方案）
 
 ![PayPal注册gptplus](assets/screenshots/PayPal注册gptplus.png)
 
@@ -248,10 +248,15 @@ npm run dev
 ```bash
 git clone https://github.com/superaddmin/Superautoplus.git
 cd SuperAutoplus
+cp .env.example .env
 docker compose up -d --build
 ```
 
-`docker-compose.yml` 示例：
+本地 Compose 默认同时发布主服务、noVNC 和 Solver 端口。生产服务器请使用仓库中的
+`compose.server.yml`，将 noVNC/Solver 限制为本机回环地址，并按
+[服务器与 Docker 部署文档](docs/deployment/server.md) 配置防火墙、Portal 和持久化数据。
+
+主服务 Compose 关键配置：
 
 ```yaml
 services:
@@ -281,7 +286,9 @@ services:
 | noVNC  | `http://localhost:6080/vnc.html` | 可视化浏览器（headed 模式） |
 | Solver | `http://localhost:8889`          | Turnstile 验证码求解器  |
 
-> 云服务器部署时，请确保安全组/防火墙放行 8000、6080、8889 端口；公网部署务必设置 `APP_PASSWORD` 访问密码。
+> 云服务器公网部署只应放行主应用 `8000` 和按需启用的 Portal `8100`；`6080`、`8889` 应绑定到
+> `127.0.0.1` 或受控内网。公网部署务必设置 `APP_PASSWORD`、`VNC_PASSWORD` 和
+> `OPAI_SOLVER_API_KEY`。
 
 ### 常用命令
 
@@ -344,6 +351,10 @@ docker compose down         # 停止
 | 邮箱地址       | 完整邮箱地址，如 `user@example.com`   |
 | Account ID | 邮箱账号 ID（在 Laoudo 面板查看）        |
 | JWT Token  | 登录后从浏览器 Cookie 或接口获取的认证 Token |
+
+### Aitre 临时邮箱
+
+Aitre 适合已有固定收件地址的临时邮箱场景。配置 `aitre_email` 填写完整邮箱地址；`aitre_api_url` 可留空并使用默认的 `https://mail.aitre.cc/api/tempmail`。在线测试只检查驱动能生成配置的邮箱地址，注册任务收码时还需要该地址真实可收信且服务器能访问 Aitre API。
 
 ### Cloudflare Worker 自建邮箱
 
@@ -637,6 +648,10 @@ python3 -m camoufox fetch                # Camoufox（反指纹浏览器）
 ```
 
 浏览器模式支持 `headless`（无头）和 `headed`（有头）两种，在注册页的执行器选项中选择。
+Docker 镜像已经包含 Chromium、Playwright Chromium、Camoufox 和 Xvfb，容器部署不需要在宿主机
+另外安装 Google Chrome；只有显式使用 `SOLVER_BROWSER_TYPE=chrome` / `msedge` 或绕过 Docker
+运行源码时，才需要准备对应的系统浏览器。服务器部署的具体端口和安全限制见
+[部署文档](docs/deployment/server.md)。
 
 ### 用 BitBrowser（比特浏览器）替代 Camoufox
 

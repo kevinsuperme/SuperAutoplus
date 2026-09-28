@@ -143,8 +143,13 @@ function Sidebar({
           collapsed && "justify-center px-2",
         )}
       >
-        <div className="eco-icon h-10 w-10 shrink-0">
-          <Leaf className="h-5 w-5" />
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center">
+          <img
+            src="/superautoplus-logo.png"
+            alt=""
+            aria-hidden="true"
+            className="h-10 w-10 object-contain"
+          />
         </div>
         {!collapsed && (
           <div className="ml-3 min-w-0">

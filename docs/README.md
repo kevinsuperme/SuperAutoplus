@@ -40,6 +40,16 @@ SuperAutoplus 是一个多平台 AI 账号自动注册、账号资产管理和 C
 - `/pxl-plus`: 客户输入 CKD 和 ChatGPT Access Token / Session JSON，后端校验 CKD 后调用 Nerver PIX API 生成 ChatGPT Plus PIX 支付信息。
 - `/luckmail-code`: 客户粘贴 `邮箱----token` 或单独 `tok_xxx`，后端调用 LuckMail 已购邮箱 token 查询接口获取验证码。
 
+## 事实来源
+
+- 主服务运行配置以 `.env.example`、`docker-compose.yml` 和 `compose.server.yml` 为准。
+- Portal 配置以 `src/customer_portal_api/.env.example`、`src/customer_portal_api/docker-compose.yml`
+  和 `src/customer_portal_api/compose.server.yml` 为准。
+- HTTP 路由以 `main.py` 挂载的 `src/api/*.py` router 为准；接口说明集中在
+  [HTTP API 参考](api/http-api.md)。
+- 架构、Provider、平台能力和部署说明随代码变更同步维护；历史实验记录只保留在
+  `docs/archives/`，不作为当前运行配置依据。
+
 ## 文档维护规则
 
 - 新增或修改代码能力时，应同步更新对应架构、API、功能或开发文档。

@@ -20,6 +20,7 @@ from customer_portal_api.app.security import hash_password
 
 
 def initialize_runtime() -> None:
+    settings.validate_for_runtime()
     init_portal_db()
     with Session(engine) as session:
         _seed_permissions(session)

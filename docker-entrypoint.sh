@@ -10,9 +10,9 @@ sleep 1
 
 # 启动 x11vnc（无密码，仅本地 VNC）
 if [ -n "$VNC_PASSWORD" ]; then
-    x11vnc -display :99 -rfbauth <(x11vnc -storepasswd "$VNC_PASSWORD" /tmp/vncpass && echo /tmp/vncpass) -forever -shared &
+    x11vnc -display :99 -localhost -rfbauth <(x11vnc -storepasswd "$VNC_PASSWORD" /tmp/vncpass && echo /tmp/vncpass) -forever -shared &
 else
-    x11vnc -display :99 -nopw -forever -shared &
+    x11vnc -display :99 -localhost -nopw -forever -shared &
 fi
 
 # 启动 noVNC（端口 6080 -> VNC 5900）

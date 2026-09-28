@@ -10,7 +10,9 @@
 | `pytest.ini` | pytest 配置 |
 | `Dockerfile` | 主应用 Docker 镜像 |
 | `docker-compose.yml` | 主应用 Docker Compose |
+| `compose.server.yml` | 服务器 Compose 覆盖：主应用公开 8000，6080/8889 仅回环 |
 | `docker-entrypoint.sh` | Docker 启动脚本 |
+| `scripts/sqlite_backup.py` | SQLite 在线备份与安全恢复工具 |
 | `README.md` | 项目介绍 |
 | `SECURITY.md`, `CONTRIBUTING.md`, `OPEN_SOURCE_RELEASE.md` | 项目安全、贡献和开源说明 |
 
@@ -56,6 +58,7 @@
 | `src/providers/sms/` | 接码 Provider |
 | `src/providers/proxy/` | 代理 Provider |
 | `src/core/base_mailbox.py` | Mailbox 基类和多种邮箱实现注册 |
+| `src/providers/mailbox/aitre.py` | Aitre 邮箱 Provider 注册包装 |
 | `src/core/luckmail_mailbox.py` | LuckMail API Provider |
 | `src/core/outlook_email_mailbox.py` | outlookEmail Provider |
 | `src/core/local_ms_mailbox.py` | 本地微软邮箱池 |
@@ -104,6 +107,7 @@
 | `src/customer_portal_api/app/models.py` | 门户模型 |
 | `src/customer_portal_api/app/db.py` | 门户数据库初始化 |
 | `src/customer_portal_api/README.md` | 门户 API 文档 |
+| `src/customer_portal_api/compose.server.yml` | Portal 服务器 Compose 覆盖，绑定 8100 |
 
 ## 测试
 
@@ -114,6 +118,7 @@
 | `tests/test_*provider*.py` | Provider 测试 |
 | `tests/test_gopay_*.py` | GoPay 测试 |
 | `tests/test_luckmail_mailbox.py` | LuckMail Provider 测试 |
+| `tests/test_aitre_mailbox.py` | Aitre Provider 工厂和在线测试接线测试 |
 | `tests/test_api_luckmail_client.py` | LuckMail 公开客户接口测试 |
 | `tests/test_api_pix_gpt_plus.py` | PIX/PXL 接口测试 |
 

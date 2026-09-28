@@ -3,8 +3,8 @@
  * 支付前环境诊断 / 风控信号检测 / 最优路径推荐
  * 全部客户端运行，零数据上传。
  */
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ShieldCheck, ScanLine, CreditCard, MapPin, Target, RotateCcw, Copy, Check, Loader2, AlertTriangle } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { ShieldCheck, ScanLine, RotateCcw, Copy, Check, Loader2, AlertTriangle } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useI18n } from "@/lib/i18n-context";
@@ -125,8 +125,6 @@ export default function SrriInspector() {
   const [attempts, setAttempts] = useState<Attempt[]>(() => {
     try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]"); } catch { return []; }
   });
-
-  const recalcRef = useRef<() => void>(() => {});
 
   // 风险评分
   const riskResult: RiskResult = useMemo(() => {

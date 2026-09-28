@@ -2,16 +2,23 @@ services:
   app:
     build: .
     ports:
-      - "8000:8000"   # FastAPI / Web UI
-      - "6080:6080"   # noVNC (headed 浏览器预览)
-      - "8889:8889"   # Turnstile Solver
+      - "${APP_PORT:-8000}:8000"   # FastAPI / Web UI
+      - "${VNC_PORT:-6080}:6080"   # noVNC (headed 浏览器预览)
+      - "${SOLVER_HOST_PORT:-8889}:8889"   # Turnstile Solver
     environment:
-      - DISPLAY=:99
-      - ACCOUNT_MANAGER_DATABASE_URL=sqlite:////app/data/account_manager.db
-      # 可选：设置访问密码，不设置则无密码保护
-      # - APP_PASSWORD=changeme
-      # 可选：设置 VNC 密码
-      # - VNC_PASSWORD=changeme
+      DISPLAY: ${DISPLAY:-:99}
+      ACCOUNT_MANAGER_DATABASE_URL: ${ACCOUNT_MANAGER_DATABASE_URL:-sqlite:////app/data/account_manager.db}
+      APP_PASSWORD: ${APP_PASSWORD:-}
+      VNC_PASSWORD: ${VNC_PASSWORD:-}
+      ACCOUNT_MANAGER_DISABLE_SOLVER: ${ACCOUNT_MANAGER_DISABLE_SOLVER:-false}
+      SOLVER_BROWSER_TYPE: ${SOLVER_BROWSER_TYPE:-camoufox}
+      OPAI_SOLVER_API_KEY: ${OPAI_SOLVER_API_KEY:-}
     volumes:
       - ./data:/app/data   # 持久化 SQLite 数据库
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:8000/api/health >/dev/null && curl -fsS http://127.0.0.1:8000/api/ready | grep -q '\"ok\":true'"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 60s

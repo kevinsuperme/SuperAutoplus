@@ -57,6 +57,7 @@
 - 各 Provider 模块通过 `@register_provider(provider_type, driver_type)` 注册类。
 - `load_all()` 扫描 `src/providers/captcha`, `src/providers/proxy`, `src/providers/sms`, `src/providers/mailbox`。
 - `create_provider(provider_type, driver_type, config)` 调用 Provider 类的 `from_config(config)`。
+- 邮箱运行时还会经过 `src/core/base_mailbox.py` 的兼容工厂表；新增 mailbox 时必须同时加入该表，否则 Provider 模块虽然能被统一注册，`/api/provider-settings/test` 和旧注册流程仍会报告“未找到邮箱驱动”。
 
 ## 内置 Provider 定义
 
@@ -127,3 +128,5 @@ LuckMail 当前字段包括：
 - sms: 当前返回“暂不支持在线测试，请在注册任务中验证”。
 
 LuckMail 的后台在线测试调用 `/api/v1/openapi/user/info`，不会创建邮箱订单。
+
+Aitre 使用固定邮箱地址，不在测试阶段向远端创建账号；在线测试只验证驱动能生成该地址。实际收码时仍需保证 `mail.aitre.cc`（或自定义 `aitre_api_url`）可访问，并填写能接收邮件的 `aitre_email`。

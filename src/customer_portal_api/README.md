@@ -79,8 +79,12 @@ cp src/customer_portal_api/.env.example src/customer_portal_api/.env
 - `PORTAL_ADMIN_USERNAME`
 - `PORTAL_ADMIN_PASSWORD`
 - `PORTAL_ADMIN_EMAIL`
+- `PORTAL_DATABASE_URL`
 - `PORTAL_START_SOLVER`
 - `ACCOUNT_MANAGER_DATABASE_URL`
+
+服务启动时会拒绝模板占位符、少于 32 个字符的 JWT 密钥、少于 12 个字符的管理员密码，
+也会拒绝 `PORTAL_CORS_ORIGINS=*`。复制模板后必须替换这些值。
 
 ### 3. 启动服务
 
@@ -97,10 +101,7 @@ PYTHONPATH=src python -m uvicorn customer_portal_api.main:app --host 0.0.0.0 --p
 - Swagger UI: `http://127.0.0.1:8100/docs`
 - OpenAPI JSON: `http://127.0.0.1:8100/openapi.json`
 
-默认管理员账号：
-
-- 用户名：`admin`
-- 密码：`admin123456`
+默认管理员账号由环境变量提供。生产环境必须设置新的用户名和高强度密码，不能使用仓库中的示例值。
 
 首次启动会自动写入管理员账号到数据库。
 
@@ -109,16 +110,23 @@ PYTHONPATH=src python -m uvicorn customer_portal_api.main:app --host 0.0.0.0 --p
 在仓库根目录执行：
 
 ```bash
-docker compose -f src/customer_portal_api/docker-compose.yml up --build
+cp src/customer_portal_api/.env.example src/customer_portal_api/.env
+# 编辑 .env，设置随机 PORTAL_JWT_SECRET、管理员密码和实际 PORTAL_CORS_ORIGINS
+docker compose --env-file src/customer_portal_api/.env -f src/customer_portal_api/docker-compose.yml up --build
 ```
 
 服务默认监听：
 
 - `http://127.0.0.1:8100`
 
+Compose 会把根目录的 `data/` 挂载到 Portal 容器的 `/app/data`。Portal 自己的用户、订单
+和订阅表使用 `PORTAL_DATABASE_URL` 指向 `customer_portal.db`；主业务账号和任务使用
+`ACCOUNT_MANAGER_DATABASE_URL` 指向 `account_manager.db`。两个数据库分开但都持久化在
+同一个宿主目录，备份和恢复时必须同时处理。
+
 ## 设计说明
 
 - 新项目复用当前仓库已有的平台注册和任务执行内核，不重新实现平台插件逻辑
-- 新项目自己的用户、刷新 token、平台授权、订单、订阅、任务归属表会和现有业务表共用同一个 SQLite 数据库
+- 新项目自己的用户、刷新 token、平台授权、订单、订阅、任务归属表使用独立的 `customer_portal.db`；主业务账号和任务仍使用 `account_manager.db`，两者通过同一持久化目录保存
 - 用户端注册接口会创建真实注册任务，并通过任务归属表限制用户只能看到自己的任务
 - 支付链路已包含商品种子、下单、提交支付、支付回调、订阅开通和平台注册权限开通

@@ -4,14 +4,23 @@ services:
       context: ../..
       dockerfile: src/customer_portal_api/Dockerfile
     ports:
-      - "8100:8100"
+      - "${PORTAL_HOST_PORT:-8100}:8100"
     environment:
-      PORTAL_JWT_SECRET: ${PORTAL_JWT_SECRET:-change-me-in-production}
-      PORTAL_ADMIN_USERNAME: ${PORTAL_ADMIN_USERNAME:-admin}
-      PORTAL_ADMIN_PASSWORD: ${PORTAL_ADMIN_PASSWORD:-admin123456}
-      PORTAL_ADMIN_EMAIL: ${PORTAL_ADMIN_EMAIL:-admin@example.com}
+      PORTAL_JWT_SECRET: ${PORTAL_JWT_SECRET:?PORTAL_JWT_SECRET must be set}
+      PORTAL_ADMIN_USERNAME: ${PORTAL_ADMIN_USERNAME:?PORTAL_ADMIN_USERNAME must be set}
+      PORTAL_ADMIN_PASSWORD: ${PORTAL_ADMIN_PASSWORD:?PORTAL_ADMIN_PASSWORD must be set}
+      PORTAL_ADMIN_EMAIL: ${PORTAL_ADMIN_EMAIL:?PORTAL_ADMIN_EMAIL must be set}
       PORTAL_ACCESS_TOKEN_TTL_SECONDS: ${PORTAL_ACCESS_TOKEN_TTL_SECONDS:-7200}
       PORTAL_REFRESH_TOKEN_TTL_SECONDS: ${PORTAL_REFRESH_TOKEN_TTL_SECONDS:-2592000}
-      PORTAL_CORS_ORIGINS: ${PORTAL_CORS_ORIGINS:-*}
+      PORTAL_CORS_ORIGINS: ${PORTAL_CORS_ORIGINS:?PORTAL_CORS_ORIGINS must be set}
       PORTAL_START_SOLVER: ${PORTAL_START_SOLVER:-false}
-      ACCOUNT_MANAGER_DATABASE_URL: ${ACCOUNT_MANAGER_DATABASE_URL:-sqlite:////app/account_manager.db}
+      PORTAL_DATABASE_URL: ${PORTAL_DATABASE_URL:-sqlite:////app/data/customer_portal.db}
+      ACCOUNT_MANAGER_DATABASE_URL: ${ACCOUNT_MANAGER_DATABASE_URL:-sqlite:////app/data/account_manager.db}
+    volumes:
+      - ../../data:/app/data
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8100/health', timeout=3)"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 20s

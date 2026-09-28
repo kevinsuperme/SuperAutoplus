@@ -10,7 +10,6 @@ import {
   Activity,
   CheckCircle,
   Clock,
-  Leaf,
   MonitorCheck,
   RefreshCw,
   ShieldCheck,
@@ -116,7 +115,12 @@ export default function Dashboard() {
         <div className="grid gap-8 lg:grid-cols-[minmax(0,1.15fr)_390px] lg:items-center">
           <div className="space-y-6">
             <div className="eco-badge">
-              <Leaf className="h-4 w-4" />
+              <img
+                src="/superautoplus-logo.png"
+                alt=""
+                aria-hidden="true"
+                className="h-5 w-5 object-contain"
+              />
               <span>SuperAutoplus</span>
             </div>
             <div>

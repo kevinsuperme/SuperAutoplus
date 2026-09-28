@@ -142,10 +142,18 @@ app.include_router(system_router, prefix="/api")
 
 _static_dir = os.path.join(os.path.dirname(__file__), "static")
 if os.path.isdir(_static_dir):
+    _static_root = Path(_static_dir).resolve()
     app.mount("/assets", StaticFiles(directory=os.path.join(_static_dir, "assets")), name="assets")
 
     @app.get("/{full_path:path}", include_in_schema=False)
     def spa_fallback(full_path: str):
+        # Vite copies files from `frontend/public` to the static root. Serve
+        # those files directly before falling back to the SPA entrypoint.
+        # Resolve the path first so a crafted URL cannot escape the static
+        # directory through `..` segments.
+        candidate = (_static_root / full_path).resolve()
+        if _static_root in candidate.parents and candidate.is_file():
+            return FileResponse(candidate)
         return FileResponse(
             os.path.join(_static_dir, "index.html"),
             headers={"Cache-Control": "no-store, max-age=0"},

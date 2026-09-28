@@ -39,10 +39,12 @@
 
 - **主服务**：公网部署务必设置 `APP_PASSWORD` 启用访问鉴权；noVNC 设置 `VNC_PASSWORD`。
 - **customer_portal_api（独立门户）**：生产环境必须
-  - 修改默认 `PORTAL_JWT_SECRET`（默认 `change-me-in-production` 不可用于生产）
-  - 修改默认管理员密码（默认 `admin123456`，首次登录后立即改密）
-  - 将 `PORTAL_CORS_ORIGINS` 从 `*` 收敛到具体可信域名
-- **端口暴露**：8000 / 6080 / 8889 仅在受信任网络开放；公网部署请置于反向代理 + TLS 之后。
+  - 从 `src/customer_portal_api/.env.example` 复制配置并替换所有 `replace-*` 占位值
+  - 设置至少 32 字符的 `PORTAL_JWT_SECRET`
+  - 设置至少 12 字符的 `PORTAL_ADMIN_PASSWORD`
+  - 将 `PORTAL_CORS_ORIGINS` 设置为具体可信来源，不能使用 `*`
+- **端口暴露**：公网部署通过 `compose.server.yml` 只发布 8000（以及按需发布的 Portal 8100），
+  将 6080/noVNC 和 8889/Solver 绑定到 `127.0.0.1` 或受控内网，并置于反向代理 + TLS 之后。
 
 ### 数据最小化
 

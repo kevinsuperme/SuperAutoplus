@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from fastapi import APIRouter
+from fastapi.responses import JSONResponse
 
 from application.health import HealthService
 
@@ -15,4 +16,8 @@ def health():
 
 @router.get("/ready")
 def ready():
-    return service.readiness()
+    payload = service.readiness()
+    return JSONResponse(
+        status_code=200 if payload.get("ok") else 503,
+        content=payload,
+    )

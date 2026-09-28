@@ -99,16 +99,16 @@ SMSBOWER_DEFAULT_API_KEY = os.environ.get("OPAI_SMSBOWER_API_KEY", "")
 
 ---
 
-## 🟡 P2 不安全的默认配置（customer_portal_api）
+## 🟡 P2 生产配置约束（customer_portal_api）
 
-占位符本身不算泄露，但默认值不安全，需在文档强调「生产必改」，最好启动时校验。
+Portal 的运行配置默认为空，环境模板只提供占位值；启动校验会拒绝缺失值、未替换的占位值、
+短 JWT 密钥、过短管理员密码和通配 CORS。生产环境必须从模板复制配置并逐项替换。
 
 | 位置 | 配置 | 默认值 | 建议 |
 |---|---|---|---|
-| `customer_portal_api/app/config.py:9` | `jwt_secret` | `change-me-in-production` | 启动时若仍为默认值则告警/拒绝启动 |
-| `customer_portal_api/app/config.py:13` | `seed_admin_password` | `admin123456` | README 强调首次登录后立即改密 |
-| `customer_portal_api/app/config.py:16` | `cors_origins` | `*` | 生产收敛到具体域名 |
-| `customer_portal_api/.env.example:6` | `PORTAL_ADMIN_PASSWORD` | `admin123456` | example 可保留占位，但加注释提醒 |
+| `customer_portal_api/app/config.py:8-16` | `jwt_secret`、管理员账号、CORS | 空字符串 | 启动时拒绝缺失配置和不安全模板值 |
+| `customer_portal_api/app/config.py:24-43` | 运行时配置校验 | — | JWT 至少 32 字符、管理员密码至少 12 字符，CORS 不允许 `*` |
+| `customer_portal_api/.env.example:2-9` | Portal 环境模板 | `replace-*` 占位值 | 仅作模板，生产启动前必须替换 |
 
 ---
 

@@ -295,6 +295,14 @@ def _create_laoudo(extra: dict, proxy: str | None) -> 'BaseMailbox':
     )
 
 
+def _create_aitre(extra: dict, proxy: str | None) -> 'BaseMailbox':
+    """Create the fixed-address mail.aitre.cc mailbox provider."""
+    return AitreMailbox(
+        email=extra.get("aitre_email", ""),
+        api_url=extra.get("aitre_api_url", ""),
+    )
+
+
 def _create_generic_http(extra: dict, proxy: str | None, *, pipeline_config: dict | None = None) -> 'BaseMailbox':
     from core.generic_http_mailbox import GenericHttpMailbox
     return GenericHttpMailbox(
@@ -319,6 +327,7 @@ MAILBOX_FACTORY_REGISTRY = {
     "luckmail_api": _create_luckmail,
     "local_ms_pool": _create_local_ms_pool,
     "laoudo_api": _create_laoudo,
+    "aitre_api": _create_aitre,
     # backward-compat fallback
     "generic_http": _create_generic_http,
     "tempmail_lol": _create_tempmail,
@@ -332,6 +341,7 @@ MAILBOX_FACTORY_REGISTRY = {
     "luckmail": _create_luckmail,
     "local_ms": _create_local_ms_pool,
     "laoudo": _create_laoudo,
+    "aitre": _create_aitre,
 }
 
 

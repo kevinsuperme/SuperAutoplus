@@ -1,0 +1,4 @@
+services:
+  customer-portal-api:
+    ports: !override
+      - "0.0.0.0:8100:8100"
