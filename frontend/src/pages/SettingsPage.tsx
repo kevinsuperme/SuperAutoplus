@@ -50,19 +50,20 @@ const THEME_OPTIONS = [
 function ThemeSelector({ theme, setTheme }: { theme: string; setTheme: (t: string) => void }) {
   const { t } = useI18n()
   return (
-    <div className="inline-flex rounded-xl border border-[var(--border)] bg-[var(--chip-bg)] p-1">
+    <div className="inline-flex max-w-full flex-wrap gap-1 rounded-xl border border-[var(--border)] bg-[var(--chip-bg)] p-1">
       {THEME_OPTIONS.map(({ value, labelKey, icon: Icon }) => (
         <button
           key={value}
           onClick={() => setTheme(value)}
+          aria-pressed={theme === value}
           className={cn(
-            'inline-flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-medium transition-all',
+            'inline-flex min-h-11 items-center gap-2 whitespace-nowrap rounded-lg px-3 py-2.5 text-sm font-medium transition-colors sm:px-5',
             theme === value
-              ? 'bg-[var(--accent)] text-white shadow-sm'
+              ? 'bg-[var(--action-bg)] text-[var(--on-accent)]'
               : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
           )}
         >
-          <Icon className="h-4 w-4" />
+          <Icon aria-hidden="true" className="h-4 w-4" />
           {t(labelKey)}
         </button>
       ))}
@@ -78,15 +79,16 @@ function LanguageSelector({
   setLanguage: (language: Language) => void
 }) {
   return (
-    <div className="inline-flex rounded-xl border border-[var(--border)] bg-[var(--chip-bg)] p-1">
+    <div className="inline-flex max-w-full flex-wrap gap-1 rounded-xl border border-[var(--border)] bg-[var(--chip-bg)] p-1">
       {LANGUAGE_OPTIONS.map(({ value, label }) => (
         <button
           key={value}
           onClick={() => setLanguage(value)}
+          aria-pressed={language === value}
           className={cn(
-            'inline-flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-medium transition-all',
+            'inline-flex min-h-11 items-center gap-2 whitespace-nowrap rounded-lg px-5 py-2.5 text-sm font-medium transition-colors',
             language === value
-              ? 'bg-[var(--accent)] text-white shadow-sm'
+              ? 'bg-[var(--action-bg)] text-[var(--on-accent)]'
               : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
           )}
         >
@@ -250,10 +252,10 @@ function GeneralTab({
 /* ------------------------------------------------------------------ */
 function SettingRow({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div className="flex items-center justify-between gap-4 px-4 py-3.5">
-      <label className="shrink-0 text-sm font-medium text-[var(--text-secondary)]">{label}</label>
-      <div className="min-w-0 max-w-[320px] flex-1">{children}</div>
-    </div>
+    <label className="flex flex-col items-stretch justify-between gap-2 px-4 py-3.5 sm:flex-row sm:items-center sm:gap-4">
+      <span className="shrink-0 text-sm font-medium text-[var(--text-secondary)]">{label}</span>
+      <span className="min-w-0 flex-1 sm:max-w-[320px]">{children}</span>
+    </label>
   )
 }
 

@@ -7,6 +7,7 @@ import {
   useNavigate,
 } from "react-router-dom";
 import { useEffect, useState } from "react";
+import * as Dialog from "@radix-ui/react-dialog";
 import { getPlatforms } from "@/lib/app-data";
 import { getAuthToken, setAuthToken, API, cn } from "@/lib/utils";
 import { getPublicClientRoute } from "@/lib/public-routes";
@@ -29,12 +30,14 @@ import PxlPlusClient from "@/pages/PxlPlusClient";
 import LuckMailCodeClient from "@/pages/LuckMailCodeClient";
 import SrriInspector from "@/pages/SrriInspector";
 import UpdateBanner from "@/components/UpdateBanner";
+import { Button } from "@/components/ui/button";
+import type { LucideIcon } from "lucide-react";
 import {
   ChevronRight,
   History,
   Languages,
   LayoutDashboard,
-  Leaf,
+  Menu,
   Monitor,
   Moon,
   PanelLeft,
@@ -45,12 +48,13 @@ import {
   Sparkles,
   Sun,
   Users,
+  X,
 } from "lucide-react";
 
 type NavItem = {
   path: string;
   labelKey: TranslationKey;
-  icon: any;
+  icon: LucideIcon;
   exact?: boolean;
 };
 
@@ -74,13 +78,17 @@ function Sidebar({
   toggleTheme,
   collapsed,
   setCollapsed,
+  mobile = false,
+  onNavigate,
 }: {
   theme: string;
   toggleTheme: () => void;
   collapsed: boolean;
   setCollapsed: (v: boolean) => void;
+  mobile?: boolean;
+  onNavigate?: () => void;
 }) {
-  const { t, toggleLanguage } = useI18n();
+  const { t, language, toggleLanguage } = useI18n();
   const location = useLocation();
   const navigate = useNavigate();
   const [platforms, setPlatforms] = useState<{ key: string; label: string }[]>(
@@ -109,13 +117,18 @@ function Sidebar({
 
   const isAccounts = location.pathname.startsWith("/accounts");
   const isSettings = location.pathname === "/settings";
+  const themeActionLabel = theme === "dark"
+    ? t("sidebar.theme.toLight")
+    : theme === "light"
+      ? t("sidebar.theme.followSystem")
+      : t("sidebar.theme.toDark");
 
   const navLinkClass = (active: boolean) =>
     cn(
-      "group flex items-center gap-3 rounded-full px-3.5 py-2.5 text-[13px] font-semibold transition-all",
+      "group flex min-h-11 items-center gap-3 rounded-xl px-3.5 py-2.5 text-[13px] font-medium transition-colors",
       active
-        ? "bg-[var(--accent)] text-white shadow-[0_10px_24px_rgba(var(--accent-rgb),0.22)]"
-        : "text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] hover:text-[var(--accent)]",
+        ? "bg-[var(--accent-soft)] text-[var(--accent-ink)]"
+        : "text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] hover:text-[var(--accent-ink)]",
       collapsed && "justify-center px-0",
     );
 
@@ -123,18 +136,19 @@ function Sidebar({
     cn(
       "h-[18px] w-[18px] shrink-0",
       active
-        ? "text-white"
-        : "text-[var(--text-muted)] group-hover:text-[var(--accent)]",
+        ? "text-[var(--accent-ink)]"
+        : "text-[var(--text-muted)] group-hover:text-[var(--accent-ink)]",
     );
 
   const iconButtonClass =
-    "flex h-9 w-9 items-center justify-center rounded-full text-[var(--text-muted)] transition-colors hover:bg-[var(--bg-hover)] hover:text-[var(--accent)]";
+    "flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-[var(--text-muted)] transition-colors hover:bg-[var(--bg-hover)] hover:text-[var(--accent-ink)]";
 
   return (
     <aside
       className={cn(
-        "app-sidebar-shell my-3 ml-3 flex h-[calc(100vh-24px)] flex-col rounded-[28px] transition-[width] duration-200",
+        "app-sidebar-shell my-3 ml-3 flex h-[calc(100vh-24px)] flex-col rounded-2xl transition-[width] duration-200",
         collapsed ? "w-16" : "w-[244px]",
+        mobile && "mobile-sidebar-open",
       )}
     >
       <div
@@ -152,18 +166,30 @@ function Sidebar({
           />
         </div>
         {!collapsed && (
-          <div className="ml-3 min-w-0">
-            <h1 className="truncate text-lg font-semibold text-[var(--text-primary)]">
+          <div className="ml-3 min-w-0 flex-1">
+            <p className="truncate text-lg font-semibold text-[var(--text-primary)]">
               SuperAutoplus
-            </h1>
+            </p>
             <p className="truncate text-xs font-medium text-[var(--text-muted)]">
               Automation platform
             </p>
           </div>
         )}
+        {mobile && (
+          <Dialog.Close asChild>
+            <button
+              type="button"
+              className={iconButtonClass}
+              aria-label={language === "zh-CN" ? "关闭导航菜单" : "Close navigation menu"}
+              title={language === "zh-CN" ? "关闭导航菜单" : "Close navigation menu"}
+            >
+              <X aria-hidden="true" className="h-5 w-5" />
+            </button>
+          </Dialog.Close>
+        )}
       </div>
 
-      <nav className="flex-1 space-y-1 overflow-y-auto px-3 pb-3">
+      <nav aria-label={language === "zh-CN" ? "主要导航" : "Main navigation"} className="flex-1 space-y-1 overflow-y-auto px-3 pb-3">
         {NAV_ITEMS.map(({ path, labelKey, icon: Icon, exact }) => {
           const active = exact
             ? location.pathname === path
@@ -176,8 +202,10 @@ function Sidebar({
               end={exact}
               className={navLinkClass(active)}
               title={collapsed ? label : undefined}
+              aria-label={collapsed ? label : undefined}
+              onClick={onNavigate}
             >
-              <Icon className={iconClass(active)} />
+              <Icon aria-hidden="true" className={iconClass(active)} />
               {!collapsed && <span className="truncate">{label}</span>}
             </NavLink>
           );
@@ -185,23 +213,29 @@ function Sidebar({
 
         <div>
           <button
+            type="button"
             onClick={() => {
-              if (collapsed) navigate("/accounts");
-              else setAccountsOpen(!accountsOpen);
+              if (collapsed) {
+                navigate("/accounts");
+                onNavigate?.();
+              } else setAccountsOpen(!accountsOpen);
             }}
             className={cn(navLinkClass(isAccounts), "w-full")}
             title={collapsed ? t("nav.accounts") : undefined}
+            aria-expanded={collapsed ? undefined : accountsOpen}
+            aria-label={collapsed ? t("nav.accounts") : undefined}
+            aria-controls={!collapsed && accountsOpen ? "accounts-subnav" : undefined}
           >
-            <Users className={iconClass(isAccounts)} />
+            <Users aria-hidden="true" className={iconClass(isAccounts)} />
             {!collapsed && (
               <>
                 <span className="flex-1 truncate text-left">
                   {t("nav.accounts")}
                 </span>
-                <ChevronRight
+                <ChevronRight aria-hidden="true"
                   className={cn(
                     "h-3.5 w-3.5 transition-transform duration-150",
-                    isAccounts ? "text-white" : "text-[var(--text-muted)]",
+                    isAccounts ? "text-[var(--accent-ink)]" : "text-[var(--text-muted)]",
                     accountsOpen && "rotate-90",
                   )}
                 />
@@ -209,16 +243,17 @@ function Sidebar({
             )}
           </button>
           {!collapsed && accountsOpen && (
-            <div className="ml-[22px] mt-1.5 space-y-1 border-l border-[var(--border)] pl-3">
+            <div id="accounts-subnav" className="ml-[22px] mt-1.5 space-y-1 border-l border-[var(--border)] pl-3">
               {platforms.map((p) => (
                 <NavLink
                   key={p.key}
                   to={`/accounts/${p.key}`}
+                  onClick={onNavigate}
                   className={({ isActive }) =>
                     cn(
-                      "block rounded-full px-3 py-1.5 text-[13px] font-medium transition-colors",
+                      "flex min-h-11 items-center rounded-xl px-3 py-2 text-[13px] font-medium transition-colors",
                       isActive
-                        ? "bg-[var(--accent-soft)] text-[var(--accent)]"
+                        ? "bg-[var(--accent-soft)] text-[var(--accent-ink)]"
                         : "text-[var(--text-muted)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-secondary)]",
                     )
                   }
@@ -228,11 +263,12 @@ function Sidebar({
               ))}
               <NavLink
                 to="/accounts/sms-pool"
+                onClick={onNavigate}
                 className={({ isActive }) =>
                   cn(
-                    "block rounded-full px-3 py-1.5 text-[13px] font-medium transition-colors",
+                    "flex min-h-11 items-center rounded-xl px-3 py-2 text-[13px] font-medium transition-colors",
                     isActive
-                      ? "bg-[var(--accent-soft)] text-[var(--accent)]"
+                      ? "bg-[var(--accent-soft)] text-[var(--accent-ink)]"
                       : "text-[var(--text-muted)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-secondary)]",
                   )
                 }
@@ -246,11 +282,16 @@ function Sidebar({
         <div className="!my-3 border-t border-[var(--border)]" />
 
         <button
-          onClick={() => navigate("/settings")}
+          type="button"
+          onClick={() => {
+            navigate("/settings");
+            onNavigate?.();
+          }}
           className={cn(navLinkClass(isSettings), "w-full")}
           title={collapsed ? t("nav.settings") : undefined}
+          aria-label={collapsed ? t("nav.settings") : undefined}
         >
-          <SettingsIcon className={iconClass(isSettings)} />
+          <SettingsIcon aria-hidden="true" className={iconClass(isSettings)} />
           {!collapsed && <span>{t("nav.settings")}</span>}
         </button>
         {!collapsed && isSettings && (
@@ -274,10 +315,12 @@ function Sidebar({
                 <NavLink
                   key={item.hash}
                   to={`/settings?tab=${item.hash}`}
+                  onClick={onNavigate}
+                  aria-current={active ? "page" : false}
                   className={cn(
-                    "block rounded-full px-3 py-1.5 text-[13px] font-medium transition-colors",
+                    "flex min-h-11 items-center rounded-xl px-3 py-2 text-[13px] font-medium transition-colors",
                     active
-                      ? "bg-[var(--accent-soft)] text-[var(--accent)]"
+                      ? "bg-[var(--accent-soft)] text-[var(--accent-ink)]"
                       : "text-[var(--text-muted)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-secondary)]",
                   )}
                 >
@@ -297,22 +340,18 @@ function Sidebar({
           )}
         >
           <button
+            type="button"
             onClick={toggleTheme}
             className={iconButtonClass}
-            title={
-              theme === "light"
-                ? t("sidebar.theme.toDark")
-                : theme === "dark"
-                  ? t("sidebar.theme.toLight")
-                  : t("sidebar.theme.followSystem")
-            }
+            title={themeActionLabel}
+            aria-label={themeActionLabel}
           >
             {theme === "light" ? (
-              <Moon className="h-4 w-4" />
+              <Monitor aria-hidden="true" className="h-4 w-4" />
             ) : theme === "system" ? (
-              <Monitor className="h-4 w-4" />
+              <Moon aria-hidden="true" className="h-4 w-4" />
             ) : (
-              <Sun className="h-4 w-4" />
+              <Sun aria-hidden="true" className="h-4 w-4" />
             )}
           </button>
           {!collapsed && (
@@ -325,23 +364,29 @@ function Sidebar({
             </span>
           )}
           <button
+            type="button"
             onClick={toggleLanguage}
             className={iconButtonClass}
             title={t("sidebar.languageToggle")}
+            aria-label={t("sidebar.languageToggle")}
           >
-            <Languages className="h-4 w-4" />
+            <Languages aria-hidden="true" className="h-4 w-4" />
           </button>
-          <button
-            onClick={() => setCollapsed(!collapsed)}
-            className={iconButtonClass}
-            title={collapsed ? t("sidebar.expand") : t("sidebar.collapse")}
-          >
-            {collapsed ? (
-              <PanelLeft className="h-4 w-4" />
-            ) : (
-              <PanelLeftClose className="h-4 w-4" />
-            )}
-          </button>
+          {!mobile && (
+            <button
+              type="button"
+              onClick={() => setCollapsed(!collapsed)}
+              className={iconButtonClass}
+              title={collapsed ? t("sidebar.expand") : t("sidebar.collapse")}
+              aria-label={collapsed ? t("sidebar.expand") : t("sidebar.collapse")}
+            >
+              {collapsed ? (
+                <PanelLeft aria-hidden="true" className="h-4 w-4" />
+              ) : (
+                <PanelLeftClose aria-hidden="true" className="h-4 w-4" />
+              )}
+            </button>
+          )}
         </div>
       </div>
     </aside>
@@ -357,47 +402,134 @@ function Shell({
   setTheme: (t: string) => void;
   toggleTheme: () => void;
 }) {
+  const { t, language } = useI18n();
+  const location = useLocation();
   const [collapsed, setCollapsed] = useState(
     () => localStorage.getItem("sidebar-collapsed") === "true",
   );
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(
+    () => window.matchMedia("(max-width: 767px)").matches,
+  );
+  const themeActionLabel = theme === "dark"
+    ? t("sidebar.theme.toLight")
+    : theme === "light"
+      ? t("sidebar.theme.followSystem")
+      : t("sidebar.theme.toDark");
 
   useEffect(() => {
     localStorage.setItem("sidebar-collapsed", String(collapsed));
   }, [collapsed]);
 
+  useEffect(() => {
+    const media = window.matchMedia("(max-width: 767px)");
+    const handleChange = (event: MediaQueryListEvent) => {
+      setIsMobile(event.matches);
+      setMobileOpen(false);
+    };
+    media.addEventListener("change", handleChange);
+    return () => media.removeEventListener("change", handleChange);
+  }, []);
+
+  useEffect(() => {
+    setMobileOpen(false);
+  }, [location.pathname, location.search]);
+
   return (
-    <div className="app-shell flex h-screen overflow-hidden">
-      <Sidebar
-        theme={theme}
-        toggleTheme={toggleTheme}
-        collapsed={collapsed}
-        setCollapsed={setCollapsed}
-      />
-      <main className="min-w-0 flex-1 overflow-y-auto">
-        <div className="app-content-panel mx-auto max-w-7xl px-5 py-5 lg:px-8">
-          <UpdateBanner />
-          <Routes>
-            <Route path="/" element={<Dashboard />} />
-            <Route path="/accounts" element={<Accounts />} />
-            <Route path="/accounts/sms-pool" element={<SmsPoolBlacklist />} />
-            <Route path="/accounts/:platform" element={<Accounts />} />
-            <Route path="/register" element={<Register />} />
-            <Route path="/ctf-gpt-plus" element={<CtfGptPlus />} />
-            <Route path="/gopay-gpt-plus" element={<GoPayGptPlus />} />
-            <Route path="/pix-gpt-plus" element={<PixGptPlus />} />
-            <Route path="/plus-manager" element={<PlusManager />} />
-            <Route path="/idp-team-automation" element={<IdpTeamAutomation />} />
-            <Route path="/srri-inspector" element={<SrriInspector />} />
-            <Route path="/history" element={<TaskHistory />} />
-            <Route path="/proxies" element={<Proxies />} />
-            <Route
-              path="/settings"
-              element={<SettingsPage theme={theme} setTheme={setTheme} />}
-            />
-          </Routes>
-        </div>
-      </main>
-    </div>
+    <Dialog.Root open={mobileOpen && isMobile} onOpenChange={setMobileOpen}>
+      <div className="app-shell app-workspace-shell flex h-screen overflow-hidden">
+        <a className="skip-link" href="#main-content">
+          {language === "zh-CN" ? "跳转到主要内容" : "Skip to main content"}
+        </a>
+        {!isMobile && (
+          <Sidebar
+            theme={theme}
+            toggleTheme={toggleTheme}
+            collapsed={collapsed}
+            setCollapsed={setCollapsed}
+          />
+        )}
+        {isMobile && (
+          <Dialog.Portal>
+            <Dialog.Overlay className="mobile-nav-scrim" />
+            <Dialog.Content className="fixed inset-y-3 left-3 z-[60] w-[min(286px,calc(100vw-24px))] outline-none">
+              <Dialog.Title className="sr-only">
+                {language === "zh-CN" ? "导航菜单" : "Navigation menu"}
+              </Dialog.Title>
+              <Dialog.Description className="sr-only">
+                {language === "zh-CN"
+                  ? "选择工作区页面，或调整主题与语言。"
+                  : "Choose a workspace page, or change the theme and language."}
+              </Dialog.Description>
+              <Sidebar
+                theme={theme}
+                toggleTheme={toggleTheme}
+                collapsed={false}
+                setCollapsed={setCollapsed}
+                mobile
+                onNavigate={() => setMobileOpen(false)}
+              />
+            </Dialog.Content>
+          </Dialog.Portal>
+        )}
+        <main id="main-content" tabIndex={-1} className="h-full min-w-0 flex-1 overflow-y-auto">
+          {isMobile && (
+            <div className="mobile-topbar">
+              <Dialog.Trigger asChild>
+                <button
+                  type="button"
+                  aria-label={language === "zh-CN" ? "打开导航菜单" : "Open navigation menu"}
+                  className="mobile-menu-button"
+                >
+                  <Menu aria-hidden="true" className="h-5 w-5" />
+                </button>
+              </Dialog.Trigger>
+              <div className="mobile-topbar-brand">
+                <img src="/superautoplus-logo.png" alt="" aria-hidden="true" />
+                <span>SuperAutoplus</span>
+              </div>
+              <button
+                type="button"
+                aria-label={themeActionLabel}
+                title={themeActionLabel}
+                className="mobile-menu-button"
+                onClick={toggleTheme}
+              >
+                {theme === "dark" ? (
+                  <Sun aria-hidden="true" className="h-4 w-4" />
+                ) : theme === "light" ? (
+                  <Monitor aria-hidden="true" className="h-4 w-4" />
+                ) : (
+                  <Moon aria-hidden="true" className="h-4 w-4" />
+                )}
+              </button>
+            </div>
+          )}
+          <div className="app-content-panel mx-auto max-w-7xl px-5 py-5 lg:px-8">
+            <UpdateBanner />
+            <Routes>
+              <Route path="/" element={<Dashboard />} />
+              <Route path="/accounts" element={<Accounts />} />
+              <Route path="/accounts/sms-pool" element={<SmsPoolBlacklist />} />
+              <Route path="/accounts/:platform" element={<Accounts />} />
+              <Route path="/register" element={<Register />} />
+              <Route path="/ctf-gpt-plus" element={<CtfGptPlus />} />
+              <Route path="/gopay-gpt-plus" element={<GoPayGptPlus />} />
+              <Route path="/pix-gpt-plus" element={<PixGptPlus />} />
+              <Route path="/plus-manager" element={<PlusManager />} />
+              <Route path="/idp-team-automation" element={<IdpTeamAutomation />} />
+              <Route path="/srri-inspector" element={<SrriInspector />} />
+              <Route path="/history" element={<TaskHistory />} />
+              <Route path="/proxies" element={<Proxies />} />
+              <Route
+                path="/settings"
+                element={<SettingsPage theme={theme} setTheme={setTheme} />}
+              />
+            </Routes>
+          </div>
+        </main>
+      </div>
+    </Dialog.Root>
   );
 }
 
@@ -438,9 +570,7 @@ function LoginScreen({ onLogin }: { onLogin: (token: string) => void }) {
         className="leaf-card w-full max-w-sm space-y-5 p-7"
       >
         <div className="flex items-center gap-3">
-          <div className="eco-icon h-12 w-12">
-            <Leaf className="h-6 w-6" />
-          </div>
+          <img src="/superautoplus-logo.png" alt="" aria-hidden="true" width="48" height="48" className="h-12 w-12 shrink-0 object-contain" />
           <div>
             <h1 className="text-2xl font-semibold text-[var(--text-primary)]">
               SuperAutoplus
@@ -450,22 +580,33 @@ function LoginScreen({ onLogin }: { onLogin: (token: string) => void }) {
             </p>
           </div>
         </div>
-        <input
-          type="password"
-          value={pw}
-          onChange={(e) => setPw(e.target.value)}
-          placeholder={t("login.passwordPlaceholder")}
-          autoFocus
-          className="control-surface w-full"
-        />
-        {error && <p className="text-xs font-medium text-red-500">{error}</p>}
-        <button
+        <div className="space-y-2">
+          <label htmlFor="login-password" className="block text-sm font-medium text-[var(--text-secondary)]">
+            {t("login.passwordPlaceholder")}
+          </label>
+          <input
+            id="login-password"
+            type="password"
+            name="password"
+            autoComplete="current-password"
+            aria-invalid={Boolean(error)}
+            aria-describedby={error ? "login-error" : undefined}
+            value={pw}
+            onChange={(e) => setPw(e.target.value)}
+            placeholder={t("login.passwordPlaceholder")}
+            autoFocus
+            className="control-surface w-full"
+          />
+        </div>
+        {error && <p id="login-error" role="alert" aria-live="polite" className="text-sm font-medium text-[var(--danger)]">{error}</p>}
+        <Button
           type="submit"
           disabled={loading || !pw}
-          className="inline-flex h-11 w-full items-center justify-center rounded-full bg-[linear-gradient(135deg,var(--accent)_0%,var(--accent-strong)_100%)] px-5 text-sm font-semibold text-white shadow-[0_12px_30px_rgba(var(--accent-rgb),0.26)] transition-all hover:-translate-y-0.5 disabled:opacity-50"
+          aria-busy={loading}
+          className="w-full"
         >
           {loading ? t("login.checking") : t("login.submit")}
-        </button>
+        </Button>
       </form>
     </div>
   );

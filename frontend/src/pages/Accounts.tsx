@@ -1605,18 +1605,20 @@ function ExportMenu({
   ]
 
   return (
-    <div className="relative" ref={menuRef}>
+    <div className="relative shrink-0" ref={menuRef}>
       <Button
         variant="outline"
         size="sm"
         onClick={() => setOpen(v => !v)}
         disabled={total === 0 || !!loading}
+        className="whitespace-nowrap"
+        aria-expanded={open}
       >
         <Download className="h-4 w-4 mr-1" />
         {loading ? '导出中...' : hasSelection ? `导出已选(${selectedIds.length})` : '导出'}
       </Button>
       {open && (
-        <div className="absolute right-0 top-10 z-20 min-w-[148px] rounded-lg border border-[var(--border)] bg-[var(--bg-card)] py-1 shadow-lg">
+        <div className="absolute right-0 top-full z-20 mt-2 min-w-[148px] max-w-[calc(100vw-4rem)] rounded-lg border border-[var(--border)] bg-[var(--bg-card)] py-1 shadow-lg">
           <div className="px-3 py-1 text-[11px] text-[var(--text-muted)]">
             {hasSelection ? `导出 ${selectedIds.length} 个已选账号` : '导出当前筛选结果'}
           </div>
@@ -1755,7 +1757,7 @@ export default function Accounts() {
   const linkedCashier = accounts.filter(acc => Boolean(getCashierUrl(acc))).length
 
   return (
-    <div className="flex h-full min-h-0 flex-col gap-4 overflow-hidden">
+    <div className="flex min-h-0 min-w-0 flex-col gap-4 md:h-full">
       {detail && <DetailModal acc={detail} onClose={() => setDetail(null)} onSave={() => { setDetail(null); load() }} />}
       {showImport && <ImportModal platform={tab} onClose={() => setShowImport(false)} onDone={() => { setShowImport(false); load() }} />}
       {showAdd && <AddModal platform={tab} onClose={() => setShowAdd(false)} onDone={() => { setShowAdd(false); load() }} />}
@@ -1780,15 +1782,15 @@ export default function Accounts() {
         />
       )}
 
-      <Card className="shrink-0 bg-[var(--bg-pane)]/40 border border-[var(--border)] shadow-sm">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 px-5 py-4 border-b border-[var(--border)]/50">
-          <div className="flex items-center gap-3">
-            <h1 className="text-lg font-semibold tracking-tight text-[var(--text-primary)]">
+      <Card className="shrink-0 p-0 bg-[var(--bg-pane)]/40 border border-[var(--border)] shadow-sm sm:p-4">
+        <div className="flex flex-col justify-between gap-4 border-b border-[var(--border)]/50 px-4 py-4 sm:px-5 xl:flex-row xl:flex-wrap xl:items-center">
+          <div className="flex min-w-0 flex-wrap items-center gap-3">
+            <h1 className="text-lg font-semibold tracking-tight text-[var(--text-primary)] [overflow-wrap:anywhere]">
               {platformLabel}
             </h1>
-            <div className="h-4 w-[1px] bg-[var(--border)]"></div>
-            <div className="flex items-center gap-1.5 text-xs">
-              <span className="text-[var(--text-muted)]">{t('accounts.count', { count: total })}</span>
+            <div aria-hidden="true" className="hidden h-4 w-px shrink-0 bg-[var(--border)] sm:block"></div>
+            <div className="flex min-w-0 flex-wrap items-center gap-1.5 text-xs">
+              <span className="whitespace-nowrap text-[var(--text-muted)]">{t('accounts.count', { count: total })}</span>
               {visibleTrial > 0 && <span className="flex items-center rounded-full bg-emerald-500/10 px-2 py-0.5 font-medium text-emerald-500 ring-1 ring-inset ring-emerald-500/20">{t('accounts.trial', { count: visibleTrial })}</span>}
               {visibleSubscribed > 0 && <span className="flex items-center rounded-full bg-blue-500/10 px-2 py-0.5 font-medium text-blue-500 ring-1 ring-inset ring-blue-500/20">{t('accounts.subscribed', { count: visibleSubscribed })}</span>}
               {linkedCashier > 0 && <span className="flex items-center rounded-full bg-amber-500/10 px-2 py-0.5 font-medium text-amber-500 ring-1 ring-inset ring-amber-500/20">{t('accounts.linked', { count: linkedCashier })}</span>}
@@ -1796,13 +1798,13 @@ export default function Accounts() {
               {selectedCount > 0 && <span className="flex items-center rounded-full bg-[var(--text-primary)]/10 px-2 py-0.5 font-medium text-[var(--text-primary)] ring-1 ring-inset ring-[var(--text-primary)]/20">{t('accounts.selected', { count: selectedCount })}</span>}
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <Button size="sm" onClick={() => setShowRegister(true)} className="h-8 shadow-sm">
+          <div className="flex min-w-0 flex-wrap items-center gap-2">
+            <Button size="sm" onClick={() => setShowRegister(true)} className="whitespace-nowrap md:h-8">
               <Plus className="mr-1.5 h-3.5 w-3.5" />
               {t('accounts.autoRegister')}
             </Button>
-            <div className="h-4 w-[1px] bg-[var(--border)]"></div>
-            <Button size="sm" variant="outline" onClick={() => setShowImport(true)} className="h-8 bg-transparent">
+            <div aria-hidden="true" className="hidden h-4 w-px shrink-0 bg-[var(--border)] sm:block"></div>
+            <Button size="sm" variant="outline" onClick={() => setShowImport(true)} className="whitespace-nowrap bg-transparent md:h-8">
               <Upload className="mr-1.5 h-3.5 w-3.5" />
               {t('accounts.import')}
             </Button>
@@ -1815,12 +1817,12 @@ export default function Accounts() {
                 selectedIds={[...selectedIds]}
               />
             ) : (
-              <Button size="sm" variant="outline" onClick={exportCsv} disabled={accounts.length === 0} className="h-8 bg-transparent">
+              <Button size="sm" variant="outline" onClick={exportCsv} disabled={accounts.length === 0} className="whitespace-nowrap bg-transparent md:h-8">
                 <Download className="mr-1.5 h-3.5 w-3.5" />
                 {t('accounts.export')}
               </Button>
             )}
-            <Button size="sm" variant="outline" onClick={() => setShowAdd(true)} className="h-8 bg-transparent">
+            <Button size="sm" variant="outline" onClick={() => setShowAdd(true)} className="whitespace-nowrap bg-transparent md:h-8">
               <Plus className="mr-1.5 h-3.5 w-3.5" />
               {t('accounts.manualAdd')}
             </Button>
@@ -1828,24 +1830,26 @@ export default function Accounts() {
         </div>
         
         {/* Search & Filter Toolbar */}
-        <div className="flex items-center justify-between gap-4 px-5 py-2.5 bg-[var(--bg-pane)]/20">
-          <div className="flex flex-1 items-center gap-3">
-            <div className="relative flex-1 max-w-sm">
+        <div className="flex flex-col gap-3 bg-[var(--bg-pane)]/20 px-4 py-4 sm:px-5 xl:flex-row xl:flex-wrap xl:items-center xl:justify-between">
+          <div className="flex min-w-0 flex-1 flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+            <div className="relative w-full min-w-0 sm:min-w-56 sm:max-w-sm sm:flex-1">
               <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-2.5 text-[var(--text-muted)]">
                 <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.3-4.3"></path></svg>
               </div>
               <input
                 type="text"
+                aria-label={t('accounts.searchPlaceholder')}
                 placeholder={t('accounts.searchPlaceholder')}
                 value={search}
                 onChange={e => setSearch(e.target.value)}
-                className="w-full rounded-md border border-[var(--border)] bg-transparent py-1.5 pl-8 pr-3 text-sm text-[var(--text-primary)] transition-colors placeholder:text-[var(--text-muted)] focus:border-[var(--text-primary)] focus:outline-none focus:ring-1 focus:ring-[var(--text-primary)]"
+                className="min-h-11 w-full rounded-md border border-[var(--border)] bg-transparent py-2 pl-8 pr-3 text-base text-[var(--text-primary)] transition-colors placeholder:text-[var(--text-muted)] focus:border-[var(--text-primary)] focus:outline-none focus:ring-1 focus:ring-[var(--text-primary)] sm:text-sm md:min-h-9 md:py-1.5"
               />
             </div>
             <select
+              aria-label={t('common.status')}
               value={filterStatus}
               onChange={e => setFilterStatus(e.target.value)}
-              className="rounded-md border border-[var(--border)] bg-transparent py-1.5 pl-3 pr-8 text-sm text-[var(--text-primary)] transition-colors focus:border-[var(--text-primary)] focus:outline-none focus:ring-1 focus:ring-[var(--text-primary)] appearance-none"
+              className="min-h-11 w-full max-w-full shrink-0 appearance-none rounded-md border border-[var(--border)] bg-transparent py-2 pl-3 pr-8 text-base text-[var(--text-primary)] transition-colors focus:border-[var(--text-primary)] focus:outline-none focus:ring-1 focus:ring-[var(--text-primary)] sm:w-auto sm:text-sm md:min-h-9 md:py-1.5"
               style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E")`, backgroundPosition: 'right 8px center', backgroundRepeat: 'no-repeat' }}
             >
               <option value="">{t('accounts.allStatuses')}</option>
@@ -1859,12 +1863,12 @@ export default function Accounts() {
             </select>
           </div>
           
-          <div className="flex items-center gap-2">
+          <div className="flex min-w-0 flex-wrap items-center gap-2">
             <Button
               variant="ghost"
               size="sm"
               disabled={batchRefreshing || loading}
-              className="h-7 px-2.5 text-[var(--text-muted)] hover:text-amber-500 hover:bg-amber-500/10"
+              className="whitespace-nowrap px-2.5 text-[var(--text-muted)] hover:text-amber-500 hover:bg-amber-500/10 md:h-7"
               title={t('accounts.refreshCreditsTitle')}
               onClick={async () => {
                 setBatchRefreshing(true)
@@ -1883,7 +1887,7 @@ export default function Accounts() {
               <Zap className={`mr-1 h-3.5 w-3.5 ${batchRefreshing ? 'animate-pulse' : ''}`} />
               {batchRefreshing ? t('accounts.refreshingCredits') : t('accounts.refreshCredits')}
             </Button>
-            <Button variant="ghost" size="sm" onClick={() => load()} disabled={loading} className="h-7 w-7 p-0 text-[var(--text-muted)] hover:text-[var(--text-primary)]">
+            <Button variant="ghost" size="sm" onClick={() => load()} disabled={loading} aria-label={t('common.refresh')} className="w-11 p-0 text-[var(--text-muted)] hover:text-[var(--text-primary)] md:h-7 md:w-9">
               <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />
             </Button>
             {selectedCount > 0 && (
@@ -1891,7 +1895,7 @@ export default function Accounts() {
                 size="sm"
                 variant="ghost"
                 disabled={bulkDeleting}
-                className="h-7 px-2.5 text-red-500 hover:bg-red-500/10 hover:text-red-600"
+                className="whitespace-nowrap px-2.5 text-red-500 hover:bg-red-500/10 hover:text-red-600 md:h-7"
                 onClick={async () => {
                   if (!confirm(t('accounts.deleteSelectedConfirm', { count: selectedCount }))) return
                   setBulkDeleting(true)
@@ -1914,10 +1918,11 @@ export default function Accounts() {
         </div>
       </Card>
 
-      <Card className="min-h-0 flex-1 overflow-hidden p-0 border border-[var(--border)] shadow-sm">
+      <Card className="min-h-64 flex-1 overflow-hidden p-0 border border-[var(--border)] shadow-sm md:min-h-0">
         <div className="flex h-full min-h-0 flex-col">
-          <div className="glass-table-wrap min-h-0 flex-1 overflow-auto">
+          <div className={`glass-table-wrap min-h-0 overflow-auto focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-[var(--accent-ink)] ${accounts.length === 0 ? 'shrink-0' : 'flex-1'}`} role="region" tabIndex={0} aria-label={`${platformLabel} ${t('nav.accounts')}`}>
         <table className="table-fixed w-full min-w-[900px] text-sm">
+          <caption className="sr-only">{platformLabel} {t('nav.accounts')}</caption>
           <colgroup>
             <col className="w-10" />
             <col className="w-[30%]" />
@@ -1946,19 +1951,6 @@ export default function Accounts() {
             </tr>
           </thead>
           <tbody>
-            {accounts.length === 0 && (
-              <tr>
-                <td colSpan={7} className="px-4 py-24 text-center">
-                  <div className="flex flex-col items-center justify-center space-y-3">
-                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[var(--bg-pane)] border border-[var(--border)] shadow-sm">
-                      <svg className="h-6 w-6 text-[var(--text-muted)]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" /></svg>
-                    </div>
-                    <h3 className="text-sm font-medium text-[var(--text-primary)]">{t('accounts.emptyTitle')}</h3>
-                    <p className="text-xs text-[var(--text-muted)] max-w-sm">{t('accounts.emptyDesc')}</p>
-                  </div>
-                </td>
-              </tr>
-            )}
             {accounts.map(acc => (
               (() => {
                 const overview = getAccountOverview(acc)
@@ -2086,6 +2078,15 @@ export default function Accounts() {
           </tbody>
         </table>
           </div>
+          {accounts.length === 0 && (
+            <div className="flex flex-1 flex-col items-center justify-center gap-3 px-5 py-12 text-center sm:py-24">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-[var(--border)] bg-[var(--bg-pane)]">
+                <svg aria-hidden="true" className="h-6 w-6 text-[var(--text-muted)]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" /></svg>
+              </div>
+              <h2 className="text-sm font-medium text-[var(--text-primary)]">{t('accounts.emptyTitle')}</h2>
+              <p className="max-w-sm text-xs leading-5 text-[var(--text-muted)]">{t('accounts.emptyDesc')}</p>
+            </div>
+          )}
         </div>
       </Card>
     </div>

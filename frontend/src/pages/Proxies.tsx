@@ -55,105 +55,107 @@ export default function Proxies() {
   const totalSuccess = proxies.reduce((sum, item) => sum + Number(item.success_count || 0), 0)
   const totalFail = proxies.reduce((sum, item) => sum + Number(item.fail_count || 0), 0)
   const metricCards = [
-    { label: t('proxies.metric.count'), value: proxies.length, icon: Globe2, tone: 'text-[var(--accent)]' },
-    { label: t('proxies.metric.enabled'), value: activeCount, icon: ShieldCheck, tone: 'text-emerald-400' },
-    { label: t('proxies.metric.success'), value: totalSuccess, icon: Activity, tone: 'text-[var(--accent)]' },
-    { label: t('proxies.metric.fail'), value: totalFail, icon: CircleOff, tone: 'text-red-400' },
+    { label: t('proxies.metric.count'), value: proxies.length, icon: Globe2, tone: 'text-[var(--accent-ink)]' },
+    { label: t('proxies.metric.enabled'), value: activeCount, icon: ShieldCheck, tone: 'text-[var(--success)]' },
+    { label: t('proxies.metric.success'), value: totalSuccess, icon: Activity, tone: 'text-[var(--accent-ink)]' },
+    { label: t('proxies.metric.fail'), value: totalFail, icon: CircleOff, tone: 'text-[var(--danger)]' },
   ]
 
   return (
-    <div className="space-y-4">
-      <Card className="overflow-hidden p-2.5">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <div className="flex flex-wrap items-center gap-2">
-            <div className="text-sm font-semibold text-[var(--text-primary)]">{t('proxies.title')}</div>
+    <div className="min-w-0 space-y-6">
+      <header className="flex flex-wrap items-center justify-between gap-4">
+          <div className="flex min-w-0 flex-wrap items-center gap-3">
+            <h1 className="text-2xl font-semibold tracking-tight text-[var(--text-primary)]">{t('proxies.title')}</h1>
             <Badge variant="default">{t('common.total')} {proxies.length}</Badge>
             <Badge variant="secondary">{t('proxies.activeBadge', { count: activeCount })}</Badge>
           </div>
-          <Button variant="outline" size="sm" onClick={check} disabled={checking}>
-            <RefreshCw className={`h-4 w-4 mr-1.5 ${checking ? 'animate-spin' : ''}`} />
+          <Button variant="outline" onClick={check} disabled={checking} aria-busy={checking}>
+            <RefreshCw aria-hidden="true" className={`h-4 w-4 mr-1.5 ${checking ? 'animate-spin' : ''}`} />
             {t('proxies.checkAll')}
           </Button>
-        </div>
-      </Card>
+      </header>
 
-      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
         {metricCards.map(({ label, value, icon: Icon, tone }) => (
-          <Card key={label} className="bg-transparent">
+          <Card key={label}>
             <div className="flex items-center justify-between gap-3">
-              <div>
-                <div className="text-[11px] uppercase tracking-[0.18em] text-[var(--text-muted)]">{label}</div>
-                <div className="mt-1.5 text-xl font-semibold tracking-[-0.03em] text-[var(--text-primary)]">{value}</div>
+              <div className="min-w-0">
+                <div className="text-xs leading-5 text-[var(--text-secondary)]">{label}</div>
+                <div className="mt-1.5 text-2xl font-semibold tabular-nums tracking-tight text-[var(--text-primary)]">{value}</div>
               </div>
-              <div className="flex h-9 w-9 items-center justify-center rounded-lg border border-[var(--border-soft)] bg-[var(--chip-bg)]">
-                <Icon className={`h-5 w-5 ${tone}`} />
+              <div className="hidden h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[var(--chip-bg)] sm:flex">
+                <Icon aria-hidden="true" className={`h-5 w-5 ${tone}`} />
               </div>
             </div>
           </Card>
         ))}
       </div>
 
-      <div className="grid gap-4 xl:grid-cols-[minmax(0,330px)_minmax(0,1fr)]">
-        <Card className="bg-[var(--bg-pane)]/60">
+      <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,320px)_minmax(0,1fr)]">
+        <Card className="p-5">
           <div className="space-y-4">
-            <div>
-              <div className="text-[11px] uppercase tracking-[0.18em] text-[var(--text-muted)]">{t('common.add')}</div>
-              <div className="mt-1 text-sm font-medium text-[var(--text-primary)]">{t('proxies.addTitle')}</div>
+            <h2 className="text-base font-semibold text-[var(--text-primary)]">{t('proxies.addTitle')}</h2>
+            <div className="space-y-2">
+              <label htmlFor="proxy-address" className="block text-sm font-medium text-[var(--text-secondary)]">{t('proxies.address')}</label>
+              <textarea
+                id="proxy-address"
+                value={newProxy}
+                onChange={e => setNewProxy(e.target.value)}
+                placeholder="http://user:pass@host:port"
+                aria-describedby="proxy-import-hint"
+                autoCapitalize="none"
+                spellCheck={false}
+                rows={7}
+                className="control-surface control-surface-mono min-h-36 resize-y"
+              />
             </div>
-            <textarea
-              value={newProxy}
-              onChange={e => setNewProxy(e.target.value)}
-              placeholder="http://user:pass@host:port"
-              rows={8}
-              className="control-surface control-surface-mono resize-none"
-            />
-            <input
-              value={region}
-              onChange={e => setRegion(e.target.value)}
-              placeholder={t('proxies.regionPlaceholder')}
-              className="control-surface"
-            />
-            <div className="rounded-lg border border-[var(--border-soft)] bg-[var(--bg-pane)]/45 px-3.5 py-2.5 text-xs leading-5 text-[var(--text-secondary)]">
+            <div className="space-y-2">
+              <label htmlFor="proxy-region" className="block text-sm font-medium text-[var(--text-secondary)]">{t('proxies.region')}</label>
+              <input
+                id="proxy-region"
+                value={region}
+                onChange={e => setRegion(e.target.value)}
+                placeholder="US, SG"
+                aria-describedby="proxy-region-hint"
+                className="control-surface"
+              />
+              <p id="proxy-region-hint" className="text-xs leading-5 text-[var(--text-muted)]">{t('proxies.regionPlaceholder')}</p>
+            </div>
+            <div id="proxy-import-hint" className="rounded-[var(--radius-sm)] bg-[var(--bg-pane)] px-3.5 py-3 text-xs leading-6 text-[var(--text-secondary)]">
               {t('proxies.hint')}
             </div>
-            <Button onClick={add} className="w-full">
-              <Plus className="h-4 w-4 mr-1.5" />
+            <Button onClick={add} disabled={!newProxy.trim()} className="w-full">
+              <Plus aria-hidden="true" className="h-4 w-4 mr-1.5" />
               {t('proxies.addToPool')}
             </Button>
           </div>
         </Card>
 
         <Card className="overflow-hidden p-0">
-          <div className="border-b border-[var(--border)] px-4 py-3 text-sm font-medium text-[var(--text-primary)]">
+          <h2 id="proxy-list-title" className="border-b border-[var(--border-soft)] px-5 py-4 text-base font-semibold text-[var(--text-primary)]">
             {t('proxies.list')}
-          </div>
-        <div className="glass-table-wrap">
+          </h2>
+        <div className="glass-table-wrap focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-[var(--accent-ink)]" role="region" tabIndex={0} aria-labelledby="proxy-list-title">
         <table className="w-full min-w-[760px] text-sm">
+          <caption className="sr-only">{t('proxies.list')}</caption>
           <thead>
             <tr className="border-b border-[var(--border)] text-[var(--text-muted)]">
-              <th className="px-4 py-2.5 text-left">{t('proxies.address')}</th>
-              <th className="px-4 py-2.5 text-left">{t('proxies.region')}</th>
-              <th className="px-4 py-2.5 text-left">{t('proxies.successFailure')}</th>
-              <th className="px-4 py-2.5 text-left">{t('common.status')}</th>
-              <th className="px-4 py-2.5 text-left">{t('common.actions')}</th>
+              <th scope="col" className="px-4 py-3 text-left">{t('proxies.address')}</th>
+              <th scope="col" className="px-4 py-3 text-left">{t('proxies.region')}</th>
+              <th scope="col" className="px-4 py-3 text-left">{t('proxies.successFailure')}</th>
+              <th scope="col" className="px-4 py-3 text-left">{t('common.status')}</th>
+              <th scope="col" className="px-4 py-3 text-left">{t('common.actions')}</th>
             </tr>
           </thead>
           <tbody>
-            {proxies.length === 0 && (
-              <tr>
-                <td colSpan={5} className="px-4 py-8">
-                  <div className="empty-state-panel">{t('proxies.empty')}</div>
-                </td>
-              </tr>
-            )}
             {proxies.map(p => (
               <tr key={p.id} className="border-b border-[var(--border)]/40 hover:bg-[var(--bg-hover)]/70">
-                <td className="px-4 py-2.5 font-mono text-xs text-[var(--text-secondary)]">{p.url}</td>
+                <td className="max-w-[320px] px-4 py-3 font-mono text-xs text-[var(--text-secondary)] [overflow-wrap:anywhere]">{p.url}</td>
                 <td className="px-4 py-2.5 text-[var(--text-muted)]">{p.region || '-'}</td>
                 <td className="px-4 py-2.5">
-                  <span className="text-emerald-400">{p.success_count}</span>
+                  <span className="tabular-nums text-[var(--success)]">{p.success_count}</span>
                   <span className="text-[var(--text-muted)]"> / </span>
-                  <span className="text-red-400">{p.fail_count}</span>
+                  <span className="tabular-nums text-[var(--danger)]">{p.fail_count}</span>
                 </td>
                 <td className="px-4 py-2.5">
                   <Badge variant={p.is_active ? 'success' : 'danger'}>
@@ -162,12 +164,12 @@ export default function Proxies() {
                 </td>
                 <td className="px-4 py-2.5">
                   <div className="flex items-center gap-2">
-                    <button onClick={() => toggle(p.id)} className="table-action-btn">
-                      {p.is_active ? <ToggleRight className="mr-1.5 h-4 w-4" /> : <ToggleLeft className="mr-1.5 h-4 w-4" />}
+                    <button onClick={() => toggle(p.id)} className="table-action-btn" aria-label={`${p.is_active ? t('proxies.disable') : t('common.enabled')} ${p.url}`}>
+                      {p.is_active ? <ToggleRight aria-hidden="true" className="mr-1.5 h-4 w-4" /> : <ToggleLeft aria-hidden="true" className="mr-1.5 h-4 w-4" />}
                       {p.is_active ? t('proxies.disable') : t('common.enabled')}
                     </button>
-                    <button onClick={() => del(p.id)} className="table-action-btn table-action-btn-danger">
-                      <Trash2 className="mr-1.5 h-4 w-4" />
+                    <button onClick={() => del(p.id)} className="table-action-btn table-action-btn-danger" aria-label={`${t('common.delete')} ${p.url}`}>
+                      <Trash2 aria-hidden="true" className="mr-1.5 h-4 w-4" />
                       {t('common.delete')}
                     </button>
                   </div>
@@ -177,6 +179,11 @@ export default function Proxies() {
           </tbody>
         </table>
         </div>
+          {proxies.length === 0 && (
+            <div className="px-5 py-10">
+              <div className="empty-state-panel">{t('proxies.empty')}</div>
+            </div>
+          )}
         </Card>
       </div>
     </div>

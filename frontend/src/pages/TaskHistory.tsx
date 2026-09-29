@@ -5,6 +5,7 @@ import { formatDateTime } from '@/lib/i18n'
 import { useI18n } from '@/lib/i18n-context'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Card } from '@/components/ui/card'
 import { getTaskStatusText, isCancellableTaskStatus, isTerminalTaskStatus, TASK_STATUS_VARIANTS } from '@/lib/tasks'
 import { RefreshCw, Activity, CheckCircle2, AlertTriangle, Clock3, ChevronDown, CircleStop } from 'lucide-react'
 
@@ -39,7 +40,7 @@ export default function TaskHistory() {
   const [platform, setPlatform] = useState('')
   const [status, setStatus] = useState('')
   const [platforms, setPlatforms] = useState<any[]>([])
-  const [loading, setLoading] = useState(false)
+  const [loading, setLoading] = useState(true)
   const [terminatingTaskIds, setTerminatingTaskIds] = useState<Set<string>>(() => new Set())
 
   const load = async () => {
@@ -94,107 +95,109 @@ export default function TaskHistory() {
   ).length
 
   const metricCards = [
-    { label: t('taskHistory.metric.total'), value: tasks.length, icon: Activity, tone: 'text-[var(--accent)]' },
-    { label: t('common.success'), value: succeeded, icon: CheckCircle2, tone: 'text-emerald-500' },
-    { label: t('common.failure'), value: failed, icon: AlertTriangle, tone: 'text-red-500' },
-    { label: t('taskHistory.metric.running'), value: running, icon: Clock3, tone: 'text-amber-500' },
+    { label: t('taskHistory.metric.total'), value: tasks.length, icon: Activity, tone: 'text-[var(--accent-ink)]' },
+    { label: t('common.success'), value: succeeded, icon: CheckCircle2, tone: 'text-[var(--success)]' },
+    { label: t('common.failure'), value: failed, icon: AlertTriangle, tone: 'text-[var(--danger)]' },
+    { label: t('taskHistory.metric.running'), value: running, icon: Clock3, tone: 'text-[var(--warning)]' },
   ]
 
   return (
-    <div className="space-y-5">
+    <div className="min-w-0 space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold text-[var(--text-primary)]">{t('taskHistory.title')}</h1>
-        <Button variant="outline" size="sm" onClick={load} disabled={loading}>
-          <RefreshCw className={`h-3.5 w-3.5 mr-1.5 ${loading ? 'animate-spin' : ''}`} />
+      <header className="flex flex-wrap items-center justify-between gap-4">
+        <h1 className="text-2xl font-semibold tracking-tight text-[var(--text-primary)]">{t('taskHistory.title')}</h1>
+        <Button variant="outline" onClick={load} disabled={loading} aria-busy={loading}>
+          <RefreshCw aria-hidden="true" className={`h-4 w-4 mr-1.5 ${loading ? 'animate-spin' : ''}`} />
           {t('common.refresh')}
         </Button>
-      </div>
+      </header>
 
       {/* Metrics */}
       <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
         {metricCards.map(({ label, value, icon: Icon, tone }) => (
-          <div
+          <Card
             key={label}
-            className="flex items-center gap-3 rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-4 py-3"
+            className="flex items-center gap-3"
           >
-            <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[var(--chip-bg)] ${tone}`}>
-              <Icon className="h-4 w-4" />
+            <div className={`hidden h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[var(--chip-bg)] sm:flex ${tone}`}>
+              <Icon aria-hidden="true" className="h-5 w-5" />
             </div>
-            <div>
-              <div className="text-[11px] text-[var(--text-muted)] uppercase tracking-wider">{label}</div>
-              <div className="text-lg font-semibold text-[var(--text-primary)]">{value}</div>
+            <div className="min-w-0">
+              <div className="text-xs leading-5 text-[var(--text-secondary)]">{label}</div>
+              <div className="mt-1.5 text-2xl font-semibold tabular-nums tracking-tight text-[var(--text-primary)]">{value}</div>
             </div>
-          </div>
+          </Card>
         ))}
       </div>
 
       {/* Filters — inline with table header */}
-      <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] overflow-hidden">
-        <div className="flex items-center gap-3 border-b border-[var(--border)] px-4 py-2.5">
-          <span className="text-sm font-medium text-[var(--text-primary)]">{t('taskHistory.recent')}</span>
-          <div className="flex-1" />
-          <div className="flex items-center gap-2">
-            <div className="relative">
-              <select
-                value={platform}
-                onChange={(e) => setPlatform(e.target.value)}
-                className="h-8 appearance-none rounded-md border border-[var(--border)] bg-[var(--bg-input)] pl-3 pr-7 text-xs text-[var(--text-secondary)] transition-colors hover:border-[var(--accent)] focus:border-[var(--accent)]"
-              >
-                <option value="">{t('taskHistory.allPlatforms')}</option>
-                {platforms.map((item: any) => (
-                  <option key={item.name} value={item.name}>{item.display_name}</option>
-                ))}
-              </select>
-              <ChevronDown className="pointer-events-none absolute right-2 top-1/2 h-3 w-3 -translate-y-1/2 text-[var(--text-muted)]" />
+      <Card className="overflow-hidden p-0">
+        <div className="flex flex-col gap-4 border-b border-[var(--border-soft)] p-5 lg:flex-row lg:items-end lg:justify-between">
+          <h2 id="task-history-table-title" className="text-base font-semibold leading-11 text-[var(--text-primary)]">{t('taskHistory.recent')}</h2>
+          <div className="flex min-w-0 flex-wrap items-end gap-3">
+            <div className="min-w-0 basis-full space-y-1.5 sm:min-w-40 sm:flex-1 sm:basis-auto">
+              <label htmlFor="task-platform-filter" className="block text-xs font-medium text-[var(--text-secondary)]">{t('common.platform')}</label>
+              <div className="relative">
+                <select
+                  id="task-platform-filter"
+                  value={platform}
+                  onChange={(e) => setPlatform(e.target.value)}
+                  className="control-surface min-h-11 appearance-none pr-9"
+                >
+                  <option value="">{t('taskHistory.allPlatforms')}</option>
+                  {platforms.map((item: any) => (
+                    <option key={item.name} value={item.name}>{item.display_name}</option>
+                  ))}
+                </select>
+                <ChevronDown aria-hidden="true" className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--text-muted)]" />
+              </div>
             </div>
-            <div className="relative">
-              <select
-                value={status}
-                onChange={(e) => setStatus(e.target.value)}
-                className="h-8 appearance-none rounded-md border border-[var(--border)] bg-[var(--bg-input)] pl-3 pr-7 text-xs text-[var(--text-secondary)] transition-colors hover:border-[var(--accent)] focus:border-[var(--accent)]"
-              >
-                <option value="">{t('taskHistory.allStatuses')}</option>
-                <option value="running">{t('taskHistory.running')}</option>
-                <option value="succeeded">{t('common.success')}</option>
-                <option value="failed">{t('common.failure')}</option>
-                <option value="cancelled">{getTaskStatusText('cancelled', language)}</option>
-                <option value="interrupted">{getTaskStatusText('interrupted', language)}</option>
-              </select>
-              <ChevronDown className="pointer-events-none absolute right-2 top-1/2 h-3 w-3 -translate-y-1/2 text-[var(--text-muted)]" />
+            <div className="min-w-0 basis-full space-y-1.5 sm:min-w-40 sm:flex-1 sm:basis-auto">
+              <label htmlFor="task-status-filter" className="block text-xs font-medium text-[var(--text-secondary)]">{t('common.status')}</label>
+              <div className="relative">
+                <select
+                  id="task-status-filter"
+                  value={status}
+                  onChange={(e) => setStatus(e.target.value)}
+                  className="control-surface min-h-11 appearance-none pr-9"
+                >
+                  <option value="">{t('taskHistory.allStatuses')}</option>
+                  <option value="running">{t('taskHistory.running')}</option>
+                  <option value="succeeded">{t('common.success')}</option>
+                  <option value="failed">{t('common.failure')}</option>
+                  <option value="cancelled">{getTaskStatusText('cancelled', language)}</option>
+                  <option value="interrupted">{getTaskStatusText('interrupted', language)}</option>
+                </select>
+                <ChevronDown aria-hidden="true" className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--text-muted)]" />
+              </div>
             </div>
             {(platform || status) && (
-              <button
+              <Button
+                variant="ghost"
                 onClick={() => { setPlatform(''); setStatus('') }}
-                className="text-xs text-[var(--text-muted)] hover:text-[var(--accent)]"
               >
                 {t('common.clear')}
-              </button>
+              </Button>
             )}
           </div>
         </div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+        <div role="status" className="sr-only">{loading ? t('common.loading') : `${t('common.total')} ${tasks.length}`}</div>
+        <div className="glass-table-wrap focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-[var(--accent-ink)]" role="region" tabIndex={0} aria-labelledby="task-history-table-title" aria-busy={loading}>
+          <table className="w-full min-w-[900px] text-sm">
+            <caption className="sr-only">{t('taskHistory.recent')}</caption>
             <thead>
               <tr className="border-b border-[var(--border)] bg-[var(--bg-pane)]">
-                <th className="px-4 py-2.5 text-left text-xs font-medium text-[var(--text-muted)]">{t('common.date')}</th>
-                <th className="px-4 py-2.5 text-left text-xs font-medium text-[var(--text-muted)]">{t('taskHistory.taskId')}</th>
-                <th className="px-4 py-2.5 text-left text-xs font-medium text-[var(--text-muted)]">{t('common.platform')}</th>
-                <th className="px-4 py-2.5 text-left text-xs font-medium text-[var(--text-muted)]">{t('common.status')}</th>
-                <th className="px-4 py-2.5 text-left text-xs font-medium text-[var(--text-muted)]">{t('common.progress')}</th>
-                <th className="px-4 py-2.5 text-left text-xs font-medium text-[var(--text-muted)]">{t('taskHistory.successFailure')}</th>
-                <th className="px-4 py-2.5 text-left text-xs font-medium text-[var(--text-muted)]">{t('common.error')}</th>
-                <th className="px-4 py-2.5 text-right text-xs font-medium text-[var(--text-muted)]">{t('common.actions')}</th>
+                <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-[var(--text-muted)]">{t('common.date')}</th>
+                <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-[var(--text-muted)]">{t('taskHistory.taskId')}</th>
+                <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-[var(--text-muted)]">{t('common.platform')}</th>
+                <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-[var(--text-muted)]">{t('common.status')}</th>
+                <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-[var(--text-muted)]">{t('common.progress')}</th>
+                <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-[var(--text-muted)]">{t('taskHistory.successFailure')}</th>
+                <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-[var(--text-muted)]">{t('common.error')}</th>
+                <th scope="col" className="px-4 py-3 text-right text-xs font-medium text-[var(--text-muted)]">{t('common.actions')}</th>
               </tr>
             </thead>
             <tbody>
-              {tasks.length === 0 && (
-                <tr>
-                  <td colSpan={8} className="px-4 py-12 text-center text-sm text-[var(--text-muted)]">
-                    {t('taskHistory.empty')}
-                  </td>
-                </tr>
-              )}
               {tasks.map((task) => {
                 const success = task.success || 0
                 const errorCount = task.error_count || 0
@@ -241,31 +244,31 @@ export default function TaskHistory() {
                         {getTaskStatusText(task.status, language)}
                       </Badge>
                     </td>
-                    <td className="px-4 py-3 text-xs text-[var(--text-secondary)]">
+                    <td className="max-w-52 px-4 py-3 text-xs text-[var(--text-secondary)] [overflow-wrap:anywhere]">
                       {task.progress || '-'}
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
                         {total > 0 ? (
                           <>
-                            <div className="flex h-1.5 w-16 overflow-hidden rounded-full bg-[var(--chip-bg)]">
+                            <div aria-hidden="true" className="flex h-1.5 w-16 overflow-hidden rounded-full bg-[var(--chip-bg)]">
                               {success > 0 && (
                                 <div
-                                  className="h-full bg-emerald-500 rounded-full"
+                                  className="h-full bg-[var(--success)] rounded-full"
                                   style={{ width: `${(success / total) * 100}%` }}
                                 />
                               )}
                               {errorCount > 0 && (
                                 <div
-                                  className="h-full bg-red-500 rounded-full"
+                                  className="h-full bg-[var(--danger)] rounded-full"
                                   style={{ width: `${(errorCount / total) * 100}%` }}
                                 />
                               )}
                             </div>
-                            <span className="text-xs text-[var(--text-muted)] whitespace-nowrap">
-                              <span className="text-emerald-500">{success}</span>
+                            <span className="text-xs tabular-nums text-[var(--text-muted)] whitespace-nowrap">
+                              <span className="text-[var(--success)]">{success}</span>
                               {' / '}
-                              <span className="text-red-500">{errorCount}</span>
+                              <span className="text-[var(--danger)]">{errorCount}</span>
                             </span>
                           </>
                         ) : (
@@ -275,12 +278,10 @@ export default function TaskHistory() {
                     </td>
                     <td className="max-w-[280px] px-4 py-3">
                       {errorText ? (
-                        <span
-                          className="block truncate text-xs text-red-500 cursor-default"
-                          title={task.error || ''}
-                        >
-                          {errorText}
-                        </span>
+                        <details className="text-xs leading-5 text-[var(--danger)]">
+                          <summary className="min-h-11 cursor-pointer py-2.5 [overflow-wrap:anywhere]">{errorText}</summary>
+                          <p className="max-w-[280px] whitespace-pre-wrap rounded-[var(--radius-sm)] bg-[var(--danger-soft)] p-3 [overflow-wrap:anywhere]">{String(task.error)}</p>
+                        </details>
                       ) : (
                         <span className="text-xs text-[var(--text-muted)]">-</span>
                       )}
@@ -295,7 +296,7 @@ export default function TaskHistory() {
                           title={t('taskHistory.terminateTitle')}
                           className="gap-1.5 whitespace-nowrap"
                         >
-                          <CircleStop className={`h-3.5 w-3.5 ${terminating ? 'animate-spin' : ''}`} />
+                          <CircleStop aria-hidden="true" className={`h-3.5 w-3.5 ${terminating ? 'animate-spin' : ''}`} />
                           {terminating || task.status === 'cancel_requested'
                             ? t('taskHistory.terminating')
                             : t('taskHistory.terminate')}
@@ -310,7 +311,12 @@ export default function TaskHistory() {
             </tbody>
           </table>
         </div>
-      </div>
+        {tasks.length === 0 && (
+          <div className="px-5 py-14 text-center text-sm text-[var(--text-muted)]">
+            {loading ? t('common.loading') : t('taskHistory.empty')}
+          </div>
+        )}
+      </Card>
     </div>
   )
 }

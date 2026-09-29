@@ -4,6 +4,16 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/png" href="/superautoplus-logo.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script>
+      // Apply the saved theme before the first paint, including public tools.
+      try {
+        const theme = localStorage.getItem('theme') || 'light';
+        document.documentElement.classList.toggle('light', theme === 'light' ||
+          (theme === 'system' && matchMedia('(prefers-color-scheme: light)').matches));
+      } catch {
+        document.documentElement.classList.add('light');
+      }
+    </script>
     <title>SuperAutoplus</title>
   </head>
   <body>
