@@ -29,6 +29,8 @@ pytest-file-results*.json
 # 数据库
 *.db
 *.db-journal
+*.db-wal
+*.db-shm
 *.sqlit
 *.db.*.bak
 *.db.pre_*
