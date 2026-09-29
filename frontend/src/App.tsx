@@ -643,7 +643,7 @@ function PublicClientRoute({ route }: { route: string }) {
 function ProtectedAppContent() {
   const { t } = useI18n();
   const [theme, setTheme] = useState(
-    () => localStorage.getItem("theme") || "light",
+    () => localStorage.getItem("theme") || "dark",
   );
   const [authState, setAuthState] = useState<
     "loading" | "open" | "locked" | "authed"

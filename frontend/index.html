@@ -7,7 +7,9 @@
     <script>
       // Apply the saved theme before the first paint, including public tools.
       try {
-        const theme = localStorage.getItem('theme') || 'light';
+        // Match the DeepSeek Harness dark canvas on a first visit while
+        // preserving an existing light/system preference.
+        const theme = localStorage.getItem('theme') || 'dark';
         document.documentElement.classList.toggle('light', theme === 'light' ||
           (theme === 'system' && matchMedia('(prefers-color-scheme: light)').matches));
       } catch {
